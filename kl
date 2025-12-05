@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kalkulator Projek Madu Kelulut</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 10px; }
+    h1, h2 { text-align: center; }
+    .container { max-width: 600px; margin: auto; }
+    label { display: block; margin-top: 8px; font-size: 14px; }
+    input { width: 100%; padding: 6px; box-sizing: border-box; font-size: 14px; }
+    button { margin-top: 12px; width: 100%; padding: 10px; font-size: 15px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12px; }
+    th, td { border: 1px solid #ccc; padding: 4px; text-align: right; }
+    th { background: #f0f0f0; }
+    .summary p { margin: 4px 0; }
+    .note { font-size: 11px; color: #555; margin-top: 6px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>Kalkulator Projek Madu Kelulut</h1>
+  <h2>NPV, IRR & Sensitiviti Harga</h2>
+
+  <p class="note">
+    Versi asas: harga & kos dianggap sama setiap tahun. Sensitiviti: harga -20%, -10%, asas, +10%, +20%.
+  </p>
+
+  <label>Tempoh Projek (tahun):
+    <input id="duration" type="number" value="10">
+  </label>
+
+  <label>Pelaburan Awal (RM):
+    <input id="initialInvestment" type="number" value="20000">
+  </label>
+
+  <label>Bilangan Koloni:
+    <input id="colonies" type="number" value="50">
+  </label>
+
+  <label>Hasil per Koloni setahun (kg):
+    <input id="yieldPerColony" type="number" value="4">
+  </label>
+
+  <label>Harga Jual (RM/kg):
+    <input id="price" type="number" value="80">
+  </label>
+
+  <label>Kos Operasi Tahunan (RM):
+    <input id="annualCost" type="number" value="8000">
+  </label>
+
+  <label>Kadar Diskaun (%):
+    <input id="discountRate" type="number" value="8">
+  </label>
+
+  <button onclick="runAnalysis()">Kira Analisis</button>
+
+  <div id="results" class="summary"></div>
+</div>
+
+<script>
+  // Fungsi NPV
+  function npv(rate, cashflows) {
+    let npvVal = 0;
+    for (let t = 0; t < cashflows.length; t++) {
+      npvVal += cashflows[t] / Math.pow(1 + rate, t);
+    }
+    return npvVal;
+  }
+
+  // Fungsi IRR (Newton-Raphson ringkas)
+  function irr(cashflows, guess = 0.1) {
+    let rate = guess;
+    for (let i = 0; i < 100; i++) {
+      let npvVal = 0;
+      let dNpv = 0;
+      for (let t = 0; t < cashflows.length; t++) {
+        let denom = Math.pow(1 + rate, t);
+        npvVal += cashflows[t] / denom;
+        if (t > 0) {
+          dNpv -= t * cashflows[t] / (denom * (1 + rate));
+        }
+      }
+      if (Math.abs(dNpv) < 1e-10) break; // elak bahagi dengan 0
+      let newRate = rate - npvVal / dNpv;
+      if (Math.abs(newRate - rate) < 1e-7) return newRate;
+      rate = newRate;
+    }
+    return rate;
+  }
+
+  // Kira satu senario berdasarkan faktor harga
+  function computeScenario(T, I0, N, Q, P, C, r, priceFactor) {
+    const effectivePrice = P * priceFactor;
+    let cashflows = [];
+    cashflows.push(-I0); // Tahun 0: pelaburan awal
+
+    for (let t = 1; t <= T; t++) {
+      const revenue = N * Q * effectivePrice;
+      const CFt = revenue - C;
+      cashflows.push(CFt);
+    }
+
+    const npvVal = npv(r, cashflows);
+    const irrVal = irr(cashflows) * 100;
+
+    return {
+      priceFactor: priceFactor,
+      price: effectivePrice,
+      cashflows: cashflows,
+      npv: npvVal,
+      irr: irrVal
+    };
+  }
+
+  function runAnalysis() {
+    const T  = parseInt(document.getElementById('duration').value);
+    const I0 = parseFloat(document.getElementById('initialInvestment').value);
+    const N  = parseFloat(document.getElementById('colonies').value);
+    const Q  = parseFloat(document.getElementById('yieldPerColony').value);
+    const P  = parseFloat(document.getElementById('price').value);
+    const C  = parseFloat(document.getElementById('annualCost').value);
+    const r  = parseFloat(document.getElementById('discountRate').value) / 100;
+
+    if ([T, I0, N, Q, P, C, r].some(v => isNaN(v))) {
+      alert("Sila pastikan semua input diisi dengan nombor yang sah.");
+      return;
+    }
+
+    // Senarai faktor harga untuk sensitiviti
+    const factors = [0.8, 0.9, 1.0, 1.1, 1.2];
+
+    // Senario asas (factor = 1.0)
+    const baseScenario = computeScenario(T, I0, N, Q, P, C, r, 1.0);
+
+    // Jadual aliran tunai untuk senario asas
+    let table = "<h3>Jadual Aliran Tunai (Senario Asas)</h3>";
+    table += "<table><tr><th>Tahun</th><th>Harga/kg</th><th>Hasil (RM)</th><th>Kos (RM)</th><th>CF (RM)</th></tr>";
+
+    table += `<tr>
+      <td style="text-align:center">0</td>
+      <td>-</td>
+      <td>0.00</td>
+      <td>${I0.toFixed(2)}</td>
+      <td>${(-I0).toFixed(2)}</td>
+    </tr>`;
+
+    for (let t = 1; t <= T; t++) {
+      const price = baseScenario.price;
+      const revenue = N * Q * price;
+      const CFt = revenue - C;
+      table += `<tr>
+        <td style="text-align:center">${t}</td>
+        <td>${price.toFixed(2)}</td>
+        <td>${revenue.toFixed(2)}</td>
+        <td>${C.toFixed(2)}</td>
+        <td>${CFt.toFixed(2)}</td>
+      </tr>`;
+    }
+    table += "</table>";
+
+    // Jadual sensitiviti harga
+    let sensTable = "<h3>Analisis Sensitiviti Harga (NPV & IRR)</h3>";
+    sensTable += "<table><tr><th>Senario</th><th>Faktor Harga</th><th>Harga/kg (RM)</th><th>NPV (RM)</th><th>IRR (%)</th></tr>";
+
+    factors.forEach((f, idx) => {
+      const scenario = computeScenario(T, I0, N, Q, P, C, r, f);
+      sensTable += `<tr>
+        <td style="text-align:center">${idx + 1}</td>
+        <td>${(f*100).toFixed(0)}%</td>
+        <td>${scenario.price.toFixed(2)}</td>
+        <td>${scenario.npv.toFixed(2)}</td>
+        <td>${scenario.irr.toFixed(2)}</td>
+      </tr>`;
+    });
+
+    sensTable += "</table>";
+
+    const resultsDiv = document.getElementById('results');
+    resultsDiv.innerHTML =
+      `<p><strong>Senario Asas (Harga RM ${baseScenario.price.toFixed(2)} / kg)</strong></p>
+       <p><strong>NPV:</strong> RM ${baseScenario.npv.toFixed(2)}</p>
+       <p><strong>IRR:</strong> ${baseScenario.irr.toFixed(2)} %</p>
+       ${table}
+       ${sensTable}
+       <p class="note">Nota: Faktor harga 80% bermaksud harga -20% daripada harga asas, 120% = +20%.</p>`;
+  }
+</script>
+</body>
+</html>
