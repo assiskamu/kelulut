@@ -7,7 +7,7 @@
   <style>
     body { font-family: Arial, sans-serif; margin: 10px; }
     h1, h2 { text-align: center; }
-    .container { max-width: 600px; margin: auto; }
+    .container { max-width: 700px; margin: auto; }
     label { display: block; margin-top: 8px; font-size: 14px; }
     input { width: 100%; padding: 6px; box-sizing: border-box; font-size: 14px; }
     button { margin-top: 12px; width: 100%; padding: 10px; font-size: 15px; }
@@ -16,51 +16,87 @@
     th { background: #f0f0f0; }
     .summary p { margin: 4px 0; }
     .note { font-size: 11px; color: #555; margin-top: 6px; }
+    .section-title { margin-top: 15px; font-weight: bold; text-decoration: underline; }
+    canvas { margin-top: 10px; }
   </style>
 </head>
 <body>
 <div class="container">
   <h1>Kalkulator Projek Madu Kelulut</h1>
-  <h2>NPV, IRR & Sensitiviti Harga</h2>
+  <h2>NPV, IRR, BCR, Harga Pulang Modal</h2>
 
   <p class="note">
-    Versi asas: harga & kos dianggap sama setiap tahun. Sensitiviti: harga -20%, -10%, asas, +10%, +20%.
+    Versi ini ikut struktur jadual aliran kewangan: maklumat ladang, pecahan kos (pembangunan, bahan input,
+    tenaga kerja, pelbagai), kos kontinjensi 10%, analisis NPV, IRR, Nisbah Faedah-Kos (BCR),
+    harga pulang modal (RM/kg) dan tempoh pulang modal. Harga & kos dianggap sama bagi setiap tahun.
   </p>
 
-  <label>Tempoh Projek (tahun):
-    <input id="duration" type="number" value="10">
+  <div class="section-title">A. Maklumat Ladang</div>
+  <label>Keluasan (hektar):
+    <input id="areaHa" type="number" value="2">
+  </label>
+  <label>Kepadatan koloni (koloni/ha):
+    <input id="density" type="number" value="100">
+  </label>
+  <label>Hasil madu per koloni setahun (kg/koloni/tahun):
+    <input id="yieldPerColony" type="number" value="2.5">
   </label>
 
-  <label>Pelaburan Awal (RM):
-    <input id="initialInvestment" type="number" value="20000">
+  <div class="section-title">B. Hasil Projek</div>
+  <label>Harga Jual Madu (RM/kg):
+    <input id="price" type="number" value="200">
   </label>
 
-  <label>Bilangan Koloni:
-    <input id="colonies" type="number" value="50">
+  <div class="section-title">C. Kos Projek</div>
+  <label>Kos Pembangunan (Tahun 0 sahaja) – contoh: koloni, pagar, infrastruktur (RM):
+    <input id="devCost0" type="number" value="297000">
   </label>
 
-  <label>Hasil per Koloni setahun (kg):
-    <input id="yieldPerColony" type="number" value="4">
+  <label>Kos Bahan Input Tahunan – contoh: makanan, kawalan serangga, input pertanian (RM/tahun):
+    <input id="inputCostAnnual" type="number" value="20000">
   </label>
 
-  <label>Harga Jual (RM/kg):
-    <input id="price" type="number" value="80">
+  <label>Kos Tenaga Kerja Tahunan (RM/tahun):
+    <input id="labourCostAnnual" type="number" value="28800">
   </label>
 
-  <label>Kos Operasi Tahunan (RM):
-    <input id="annualCost" type="number" value="8000">
+  <label>Kos Pelbagai Tahunan – contoh: penyelenggaraan, sewa tanah, lain-lain (RM/tahun):
+    <input id="miscCostAnnual" type="number" value="16000">
   </label>
 
-  <label>Kadar Diskaun (%):
-    <input id="discountRate" type="number" value="8">
+  <label>Kadar Diskaun (% setahun):
+    <input id="discountRate" type="number" value="10">
   </label>
+
+  <label>Tempoh Analisis (tahun ekonomi projek):
+    <input id="duration" type="number" value="7">
+  </label>
+
+  <p class="note">
+    Kos kontinjensi 10% akan dikira secara automatik atas jumlah kos setiap tahun
+    (pembangunan + bahan input + tenaga kerja + pelbagai).
+  </p>
 
   <button onclick="runAnalysis()">Kira Analisis</button>
 
   <div id="results" class="summary"></div>
+
+  <div class="section-title">D. Graf Visual</div>
+  <p class="note">Graf ini membantu penternak melihat aliran tunai, pulang modal, dan kesan perubahan harga.</p>
+  <canvas id="cfChart" height="180"></canvas>
+  <canvas id="cumCfChart" height="180"></canvas>
+  <canvas id="npvSensChart" height="180"></canvas>
 </div>
 
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script>
+  // Simpan instance graf supaya boleh destroy bila kira semula
+  let cfChartInstance = null;
+  let cumCfChartInstance = null;
+  let npvSensChartInstance = null;
+
   function npv(rate, cashflows) {
     let npvVal = 0;
     for (let t = 0; t < cashflows.length; t++) {
@@ -89,83 +125,173 @@
     return rate;
   }
 
-  function computeScenario(T, I0, N, Q, P, C, r, priceFactor) {
-    const effectivePrice = P * priceFactor;
-    let cashflows = [];
-    cashflows.push(-I0); // Tahun 0: pelaburan awal
+  function computeScenario(T, areaHa, density, yieldPerColony, basePrice,
+                           devCost0, inputAnnual, labourAnnual, miscAnnual,
+                           discountRate, priceFactor) {
 
-    for (let t = 1; t <= T; t++) {
-      const revenue = N * Q * effectivePrice;
-      const CFt = revenue - C;
-      cashflows.push(CFt);
+    const colonies = areaHa * density;
+    const price = basePrice * priceFactor;
+    const totalKgPerYear = colonies * yieldPerColony;
+
+    let cashflows = [];
+    let benefits = [];
+    let totalCosts = [];
+
+    let cumCF = 0;
+    let paybackYear = null;
+    let pvBenefits = 0;
+    let pvCosts = 0;
+
+    for (let t = 0; t <= T; t++) {
+      let benefit = (t === 0) ? 0 : totalKgPerYear * price;
+
+      let directCost;
+      if (t === 0) {
+        directCost = devCost0;
+      } else {
+        directCost = inputAnnual + labourAnnual + miscAnnual;
+      }
+
+      let contingency = directCost * 0.10;
+      let totalCost = directCost + contingency;
+
+      let cf = benefit - totalCost;
+
+      cashflows.push(cf);
+      benefits.push(benefit);
+      totalCosts.push(totalCost);
+
+      cumCF += cf;
+      if (paybackYear === null && cumCF >= 0 && t > 0) {
+        paybackYear = t;
+      }
+
+      const df = Math.pow(1 + discountRate, t);
+      pvBenefits += benefit / df;
+      pvCosts += totalCost / df;
     }
 
-    const npvVal = npv(r, cashflows);
+    const npvVal = npv(discountRate, cashflows);
     const irrVal = irr(cashflows) * 100;
+    const bcrVal = pvCosts > 0 ? pvBenefits / pvCosts : null;
 
     return {
-      priceFactor: priceFactor,
-      price: effectivePrice,
-      cashflows: cashflows,
+      priceFactor,
+      price,
+      colonies,
+      totalKgPerYear,
+      cashflows,
+      benefits,
+      totalCosts,
       npv: npvVal,
-      irr: irrVal
+      irr: irrVal,
+      bcr: bcrVal,
+      paybackYear
     };
   }
 
-  function runAnalysis() {
-    const T  = parseInt(document.getElementById('duration').value);
-    const I0 = parseFloat(document.getElementById('initialInvestment').value);
-    const N  = parseFloat(document.getElementById('colonies').value);
-    const Q  = parseFloat(document.getElementById('yieldPerColony').value);
-    const P  = parseFloat(document.getElementById('price').value);
-    const C  = parseFloat(document.getElementById('annualCost').value);
-    const r  = parseFloat(document.getElementById('discountRate').value) / 100;
+  function computeBreakEvenPrice(T, areaHa, density, yieldPerColony,
+                                 devCost0, inputAnnual, labourAnnual, miscAnnual,
+                                 discountRate) {
+    const colonies = areaHa * density;
+    const totalKgPerYear = colonies * yieldPerColony;
 
-    if ([T, I0, N, Q, P, C, r].some(v => isNaN(v))) {
+    let pvKg = 0;
+    let pvCosts = 0;
+
+    for (let t = 0; t <= T; t++) {
+      let benefitKg = (t === 0) ? 0 : totalKgPerYear;
+
+      let directCost;
+      if (t === 0) {
+        directCost = devCost0;
+      } else {
+        directCost = inputAnnual + labourAnnual + miscAnnual;
+      }
+
+      let contingency = directCost * 0.10;
+      let totalCost = directCost + contingency;
+
+      const df = Math.pow(1 + discountRate, t);
+      pvKg += benefitKg / df;
+      pvCosts += totalCost / df;
+    }
+
+    if (pvKg === 0) return null;
+    return pvCosts / pvKg;
+  }
+
+  function runAnalysis() {
+    const areaHa         = parseFloat(document.getElementById('areaHa').value);
+    const density        = parseFloat(document.getElementById('density').value);
+    const yieldPerColony = parseFloat(document.getElementById('yieldPerColony').value);
+    const basePrice      = parseFloat(document.getElementById('price').value);
+    const devCost0       = parseFloat(document.getElementById('devCost0').value);
+    const inputAnnual    = parseFloat(document.getElementById('inputCostAnnual').value);
+    const labourAnnual   = parseFloat(document.getElementById('labourCostAnnual').value);
+    const miscAnnual     = parseFloat(document.getElementById('miscCostAnnual').value);
+    const r              = parseFloat(document.getElementById('discountRate').value) / 100;
+    const T              = parseInt(document.getElementById('duration').value);
+
+    if ([areaHa, density, yieldPerColony, basePrice, devCost0, inputAnnual,
+         labourAnnual, miscAnnual, r, T].some(v => isNaN(v))) {
       alert("Sila pastikan semua input diisi dengan nombor yang sah.");
       return;
     }
 
     const factors = [0.8, 0.9, 1.0, 1.1, 1.2];
 
-    const baseScenario = computeScenario(T, I0, N, Q, P, C, r, 1.0);
+    const baseScenario = computeScenario(
+      T, areaHa, density, yieldPerColony, basePrice,
+      devCost0, inputAnnual, labourAnnual, miscAnnual, r, 1.0
+    );
 
-    let table = "<h3>Jadual Aliran Tunai (Senario Asas)</h3>";
-    table += "<table><tr><th>Tahun</th><th>Harga/kg</th><th>Hasil (RM)</th><th>Kos (RM)</th><th>CF (RM)</th></tr>";
+    const breakEvenPrice = computeBreakEvenPrice(
+      T, areaHa, density, yieldPerColony,
+      devCost0, inputAnnual, labourAnnual, miscAnnual, r
+    );
 
-    table += `<tr>
-      <td style="text-align:center">0</td>
-      <td>-</td>
-      <td>0.00</td>
-      <td>${I0.toFixed(2)}</td>
-      <td>${(-I0).toFixed(2)}</td>
-    </tr>`;
+    const colonies = baseScenario.colonies;
+    const totalKgPerYear = baseScenario.totalKgPerYear;
+    const paybackText = baseScenario.paybackYear
+      ? "Tahun ke-" + baseScenario.paybackYear
+      : "Tidak pulang modal dalam tempoh analisis";
 
-    for (let t = 1; t <= T; t++) {
-      const price = baseScenario.price;
-      const revenue = N * Q * price;
-      const CFt = revenue - C;
+    // Jadual aliran tunai
+    let table = "<h3>Jadual Aliran Tunai</h3>";
+    table += "<table><tr><th>Tahun</th><th>Hasil (RM)</th><th>Jumlah Kos (RM)</th><th>CF (RM)</th></tr>";
+    for (let t = 0; t <= T; t++) {
       table += `<tr>
         <td style="text-align:center">${t}</td>
-        <td>${price.toFixed(2)}</td>
-        <td>${revenue.toFixed(2)}</td>
-        <td>${C.toFixed(2)}</td>
-        <td>${CFt.toFixed(2)}</td>
+        <td>${baseScenario.benefits[t].toFixed(2)}</td>
+        <td>${baseScenario.totalCosts[t].toFixed(2)}</td>
+        <td>${baseScenario.cashflows[t].toFixed(2)}</td>
       </tr>`;
     }
     table += "</table>";
 
-    let sensTable = "<h3>Analisis Sensitiviti Harga (NPV & IRR)</h3>";
-    sensTable += "<table><tr><th>Senario</th><th>Faktor Harga</th><th>Harga/kg (RM)</th><th>NPV (RM)</th><th>IRR (%)</th></tr>";
+    // Analisis sensitiviti harga
+    let sensTable = "<h3>Analisis Sensitiviti Harga (NPV, IRR, BCR)</h3>";
+    sensTable += "<table><tr><th>Senario</th><th>Faktor Harga</th><th>Harga/kg (RM)</th><th>NPV (RM)</th><th>IRR (%)</th><th>BCR</th></tr>";
+
+    const sensLabels = [];
+    const sensNPV = [];
 
     factors.forEach((f, idx) => {
-      const scenario = computeScenario(T, I0, N, Q, P, C, r, f);
+      const sc = computeScenario(
+        T, areaHa, density, yieldPerColony, basePrice,
+        devCost0, inputAnnual, labourAnnual, miscAnnual, r, f
+      );
+      sensLabels.push((f * 100).toFixed(0) + "%");
+      sensNPV.push(sc.npv);
+
       sensTable += `<tr>
         <td style="text-align:center">${idx + 1}</td>
-        <td>${(f*100).toFixed(0)}%</td>
-        <td>${scenario.price.toFixed(2)}</td>
-        <td>${scenario.npv.toFixed(2)}</td>
-        <td>${scenario.irr.toFixed(2)}</td>
+        <td>${(f * 100).toFixed(0)}%</td>
+        <td>${sc.price.toFixed(2)}</td>
+        <td>${sc.npv.toFixed(2)}</td>
+        <td>${sc.irr.toFixed(2)}</td>
+        <td>${sc.bcr !== null ? sc.bcr.toFixed(2) : "-"}</td>
       </tr>`;
     });
 
@@ -173,12 +299,114 @@
 
     const resultsDiv = document.getElementById('results');
     resultsDiv.innerHTML =
-      `<p><strong>Senario Asas (Harga RM ${baseScenario.price.toFixed(2)} / kg)</strong></p>
-       <p><strong>NPV:</strong> RM ${baseScenario.npv.toFixed(2)}</p>
-       <p><strong>IRR:</strong> ${baseScenario.irr.toFixed(2)} %</p>
+      `<p><strong>Keluasan:</strong> ${areaHa.toFixed(2)} ha</p>
+       <p><strong>Kepadatan koloni:</strong> ${density.toFixed(0)} koloni/ha
+          &nbsp;→&nbsp; <strong>Bilangan koloni:</strong> ${colonies.toFixed(0)} koloni</p>
+       <p><strong>Jumlah hasil madu setahun:</strong> ${totalKgPerYear.toFixed(2)} kg/tahun</p>
+       <p><strong>NPV (Nilai Kini Bersih):</strong> RM ${baseScenario.npv.toFixed(2)}</p>
+       <p><strong>IRR (Kadar Pulangan Dalaman):</strong> ${baseScenario.irr.toFixed(2)} %</p>
+       <p><strong>BCR (Nisbah Faedah-Kos):</strong> ${baseScenario.bcr !== null ? baseScenario.bcr.toFixed(2) : "-"}</p>
+       <p><strong>Harga Pulang Modal (RM/kg):</strong> ${breakEvenPrice !== null ? breakEvenPrice.toFixed(2) : "-"}</p>
+       <p><strong>Tempoh Pulang Modal:</strong> ${paybackText}</p>
        ${table}
        ${sensTable}
-       <p class="note">Nota: Faktor harga 80% bermaksud harga -20% daripada harga asas, 120% = +20%.</p>`;
+       <p class="note">
+         Nota: Kos kontinjensi 10% telah ditambah secara automatik pada setiap tahun
+         atas jumlah kos langsung (pembangunan/bahan input/tenaga kerja/pelbagai).
+       </p>`;
+
+    // ---------------- GRAF 1: Aliran Tunai Bersih ----------------
+    const yearLabels = [];
+    const cfData = [];
+    let cum = 0;
+    const cumData = [];
+
+    for (let t = 0; t <= T; t++) {
+      yearLabels.push("Tahun " + t);
+      const cf = baseScenario.cashflows[t];
+      cfData.push(cf);
+      cum += cf;
+      cumData.push(cum);
+    }
+
+    if (cfChartInstance) cfChartInstance.destroy();
+    const cfCtx = document.getElementById('cfChart').getContext('2d');
+    cfChartInstance = new Chart(cfCtx, {
+      type: 'bar',
+      data: {
+        labels: yearLabels,
+        datasets: [{
+          label: 'Aliran Tunai Bersih (RM)',
+          data: cfData,
+          backgroundColor: 'rgba(54, 162, 235, 0.5)',
+          borderColor: 'rgba(54, 162, 235, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: true } },
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+
+    // ---------------- GRAF 2: Aliran Tunai Terkumpul ----------------
+    if (cumCfChartInstance) cumCfChartInstance.destroy();
+    const cumCtx = document.getElementById('cumCfChart').getContext('2d');
+    cumCfChartInstance = new Chart(cumCtx, {
+      type: 'line',
+      data: {
+        labels: yearLabels,
+        datasets: [{
+          label: 'Aliran Tunai Terkumpul (RM)',
+          data: cumData,
+          fill: false,
+          borderColor: 'rgba(75, 192, 192, 1)',
+          backgroundColor: 'rgba(75, 192, 192, 0.3)',
+          tension: 0.2,
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: true } },
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+
+    // ---------------- GRAF 3: NPV vs Faktor Harga ----------------
+    if (npvSensChartInstance) npvSensChartInstance.destroy();
+    const npvCtx = document.getElementById('npvSensChart').getContext('2d');
+    npvSensChartInstance = new Chart(npvCtx, {
+      type: 'bar',
+      data: {
+        labels: sensLabels,
+        datasets: [{
+          label: 'NPV mengikut Senario Harga (RM)',
+          data: sensNPV,
+          backgroundColor: [
+            'rgba(255, 99, 132, 0.6)',
+            'rgba(255, 159, 64, 0.6)',
+            'rgba(255, 205, 86, 0.6)',
+            'rgba(75, 192, 192, 0.6)',
+            'rgba(54, 162, 235, 0.6)'
+          ],
+          borderColor: [
+            'rgba(255, 99, 132, 1)',
+            'rgba(255, 159, 64, 1)',
+            'rgba(255, 205, 86, 1)',
+            'rgba(75, 192, 192, 1)',
+            'rgba(54, 162, 235, 1)'
+          ],
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: true } },
+        scales: { y: { beginAtZero: true } }
+      }
+    });
   }
 </script>
 </body>
