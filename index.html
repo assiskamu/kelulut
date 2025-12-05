@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kalkulator Projek Madu Kelulut</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 10px; }
+    h1, h2 { text-align: center; }
+    .container { max-width: 600px; margin: auto; }
+    label { display: block; margin-top: 8px; font-size: 14px; }
+    input { width: 100%; padding: 6px; box-sizing: border-box; font-size: 14px; }
+    button { margin-top: 12px; width: 100%; padding: 10px; font-size: 15px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12px; }
+    th, td { border: 1px solid #ccc; padding: 4px; text-align: right; }
+    th { background: #f0f0f0; }
+    .summary p { margin: 4px 0; }
+    .note { font-size: 11px; color: #555; margin-top: 6px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>Kalkulator Projek Madu Kelulut</h1>
+  <h2>NPV, IRR & Sensitiviti Harga</h2>
+  <p class="note">Versi asas: harga & kos dianggap sama setiap tahun. Sensitiviti: harga -20%, -10%, asas, +10%, +20%.</p>
+
+  <label>Tempoh Projek (tahun): <input id="duration" type="number" value="10"></label>
+  <label>Pelaburan Awal (RM): <input id="initialInvestment" type="number" value="20000"></label>
+  <label>Bilangan Koloni: <input id="colonies" type="number" value="50"></label>
+  <label>Hasil per Koloni setahun (kg): <input id="yieldPerColony" type="number" value="4"></label>
+  <label>Harga Jual (RM/kg): <input id="price" type="number" value="80"></input></label>
+  <label>Kos Operasi Tahunan (RM): <input id="annualCost" type="number" value="8000"></label>
+  <label>Kadar Diskaun (%): <input id="discountRate" type="number" value="8"></label>
+
+  <button onclick="runAnalysis()">Kira Analisis</button>
+  <div id="results" class="summary"></div>
+</div>
+
+<script>
+  function npv(rate, cashflows) {
+    let npvVal = 0;
+    for (let t = 0; t < cashflows.length; t++) {
+      npvVal += cashflows[t] / Math.pow(1 + rate, t);
+    }
+    return npvVal;
+  }
+
+  function irr(cashflows, guess = 0.1) {
+    let rate = guess;
+    for (let i = 0; i < 100; i++) {
+      let npvVal = 0;
+      let dNpv = 0;
+      for (let t = 0; t < cashflows.length; t++) {
+        let denom = Math.pow(1 + rate, t);
+        npvVal += cashflows[t] / denom;
+        if (t > 0) dNpv -= t * cashflows[t] / (denom * (1 + rate));
+      }
+      if (Math.abs(dNpv) < 1e-10) break;
+      let newRate = rate - npvVal / dNpv;
+      if (Math.abs(newRate - rate) < 1e-7) return newRate;
+      rate = newRate;
+    }
+    return rate;
+  }
+
+  function computeScenario(T, I0, N, Q, P, C, r, priceFactor) {
+    const effectivePrice = P * priceFactor;
+    let cashflows = [];
+    cashflows.push(-II0);
+
+    for (let t = 1; t <= T; t++) {
+      const revenue = N * Q * effectivePrice;
+      const CFt = revenue - C;
+      cashflows.push(CFt);
+    }
+
+    return {
+      priceFactor,
+      price: effectivePrice,
+      cashflows,
+      npv: npv(r, cashflows),
+      irr: irr(cashflows) * 100
+    };
+  }
+
+  function runAnalysis() {
+    const T = +document.getElementById('duration').value;
+    const I0 = +document.getElementById('initialInvestment').value;
+    const N = +document.getElementById('colonies').value;
+    const Q = +document.getElementById('yieldPerColony').value;
+    const P = +document.getElementById('price').value;
+    const C = +document.getElementById('annualCost').value;
+    const r = +document.getElementById('discountRate').value / 100;
+
+    const base = computeScenario(T, I0, N, Q, P, C, r, 1.0);
+
+    let out = `<p><strong>NPV:</strong> RM ${base.npv.toFixed(2)}</p>
+               <p><strong>IRR:</strong> ${base.irr.toFixed(2)}%</p>`;
+
+    document.getElementById('results').innerHTML = out;
+  }
+</script>
+</body>
+</html>
