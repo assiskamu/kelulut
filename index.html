@@ -153,7 +153,7 @@
 <div class="container" id="reportArea">
   <h1>KALKULATOR PROJEK MADU KELULUT</h1>
   <h2>Analisis Kewangan</h2>
-  <div class="meta" id="reportMeta">Versi kalkulator: v2.0</div>
+  <div class="meta" id="reportMeta">Versi kalkulator: v2.1</div>
 
   <p class="note">
     Hai semua! Kalkulator ini membantu penternak menilai sama ada projek madu kelulut berbaloi atau tidak dari sudut kewangan.
@@ -205,7 +205,15 @@
     </label>
     <div class="error-text" id="err-yieldPerColony"></div>
 
-    <!-- B. Hasil Produk -->
+    <div class="inline" style="margin-top:4px;">
+      <label class="pill"><input type="checkbox" id="enableYear1LowerYield"> Tahun 1 hasil lebih rendah</label>
+      <div style="max-width:180px;">
+        <label>Faktor hasil Tahun 1 (%):
+          <input id="year1YieldFactor" type="number" min="0" max="100" step="5" value="70">
+        </label>
+      </div>
+    </div>
+
     <div class="section-title">B. Hasil Produk</div>
     <label>Harga jual madu kelulut (RM/kg):
       <input id="price" type="number" min="0" step="1" value="200">
@@ -231,6 +239,22 @@
     <label>Kos ganti koloni (RM/koloni mati):
       <input id="replacementColonyCost" type="number" min="0" step="50" value="1000">
     </label>
+
+    <details>
+      <summary>Pelan tambah koloni (pilihan)</summary>
+      <div class="inline">
+        <label class="pill"><input type="checkbox" id="enableExpansion"> Tambah koloni setiap tahun</label>
+        <label class="pill"><input type="radio" name="expansionMode" value="increment" checked> +N koloni/tahun</label>
+        <label class="pill"><input type="radio" name="expansionMode" value="percent"> +X% koloni/tahun</label>
+      </div>
+      <label>Tambah tetap (+N koloni/tahun):
+        <input id="expansionIncrement" type="number" min="0" step="1" value="0">
+      </label>
+      <label>Tambah peratus (+X%/tahun):
+        <input id="expansionPercent" type="number" min="0" step="1" value="0">
+      </label>
+      <p class="note">Kos tambah koloni akan dikira menggunakan kos pembinaan koloni sedia ada (RM/koloni).</p>
+    </details>
   </div>
 
   <!-- LANGKAH 2 -->
@@ -335,6 +359,15 @@
     </details>
   </div>
 
+  <details open>
+    <summary>Preview cepat (anggaran Tahun 1)</summary>
+    <div class="three-cards">
+      <div class="mini-card"><h4>Anggaran madu Tahun 1</h4><div class="badge" id="previewHoney">-</div><small class="note">Termasuk faktor hasil Tahun 1 & mortaliti Tahun 1.</small></div>
+      <div class="mini-card"><h4>Anggaran botol (jika pembungkusan)</h4><div class="badge" id="previewBottles">-</div><small class="note">Berdasarkan saiz botol & hasil madu Tahun 1.</small></div>
+      <div class="mini-card"><h4>Kos tahunan Tahun 1 (RM)</h4><div class="badge" id="previewCost">-</div><small class="note">Kos asas + opsyen + kontinjensi.</small></div>
+    </div>
+  </details>
+
   <!-- LANGKAH 3 -->
   <div class="section-title">Langkah 3: Parameter analisis (G) & tindakan</div>
   <div class="step-card">
@@ -347,6 +380,10 @@
       <input id="duration" type="number" min="1" step="1" value="7">
     </label>
     <div class="error-text" id="err-duration"></div>
+
+    <label>Kontinjensi (% atas kos tahunan):
+      <input id="contingencyPercent" type="number" min="0" max="100" step="0.5" value="10">
+    </label>
 
     <label>Kenaikan kos tahunan (inflasi kos) %:
       <input id="costEscalationPercent" type="number" min="0" step="0.1" value="0">
@@ -365,7 +402,7 @@
       <button class="btn-secondary btn-inline" id="btnClearSave">Padam Simpanan</button>
     </div>
     <div class="note" id="statusMessage"></div>
-    <p class="note">Auto-simpan akan berlaku setiap kali anda ubah nilai. Simpanan disimpan di pelayar (localStorage).</p>
+    <p class="note">Auto-simpan akan berlaku secara tertunda (beberapa saat) setiap kali anda ubah nilai. Simpanan disimpan di pelayar (localStorage).</p>
   </div>
 
   <div id="results" class="summary"></div>
@@ -376,9 +413,13 @@
   <canvas id="cfChart" height="180"></canvas>
   <canvas id="cumCfChart" height="180"></canvas>
   <canvas id="npvSensChart" height="180"></canvas>
+  <canvas id="tornadoChart" height="200"></canvas>
 
   <div style="margin-top:16px;" class="inline">
-    <button class="btn-secondary" onclick="downloadPDF()">📄 Muat Turun PDF (Analisis Kewangan)</button>
+    <button class="btn-secondary" onclick="downloadPDF()">📄 Muat Turun PDF (Ringkas – Screenshot)</button>
+    <button class="btn-secondary" onclick="downloadProfessionalPDF()">📑 Muat Turun PDF (Profesional)</button>
+    <button class="btn-ghost" onclick="downloadCashflowCSV()">⬇️ Muat Turun CSV – Aliran Tunai</button>
+    <button class="btn-ghost" onclick="downloadSensitivityCSV()">⬇️ Muat Turun CSV – Sensitiviti</button>
   </div>
 
   <div class="disclaimer">
@@ -418,8 +459,22 @@
   let cfChartInstance = null;
   let cumCfChartInstance = null;
   let npvSensChartInstance = null;
+  let tornadoChartInstance = null;
 
   const storageKey = "kelulutCalc_v2_state";
+  const currencyFmt = new Intl.NumberFormat('ms-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  function fmtNumber(x, decimals = 2) {
+    if (x === null || x === undefined || isNaN(x)) return "-";
+    const formatter = new Intl.NumberFormat('ms-MY', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    return formatter.format(Number(x));
+  }
+  function coloredFmt(x, decimals = 2) {
+    if (x === null || isNaN(x)) return "-";
+    const formatted = fmtNumber(x, decimals);
+    const color = x < 0 ? '#ff5252' : '#f1f1f1';
+    return `<span style="color:${color};">${formatted}</span>`;
+  }
+  function clamp(value, min, max) { return Math.min(Math.max(value, min), max); }
 
   const defaultState = {
     mode: "detailed",
@@ -466,29 +521,18 @@
     enableFeeding: false,
     feedingCostAnnual: 0,
     enableCompliance: false,
-    complianceCostAnnual: 0
+    complianceCostAnnual: 0,
+    enableYear1LowerYield: false,
+    year1YieldFactor: 70,
+    contingencyPercent: 10,
+    enableExpansion: false,
+    expansionMode: "increment",
+    expansionIncrement: 0,
+    expansionPercent: 0
   };
 
-  function fmt(x, decimals = 2) {
-    if (x === null || isNaN(x)) return "-";
-    const parts = Number(x).toFixed(decimals).split(".");
-    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    return parts.join(".");
-  }
-
-  function coloredFmt(x, decimals = 2) {
-    if (x === null || isNaN(x)) return "-";
-    const formatted = fmt(x, decimals);
-    const color = x < 0 ? '#ff5252' : '#f1f1f1';
-    return `<span style="color:${color};">${formatted}</span>`;
-  }
-
   function npv(rate, cashflows) {
-    let npvVal = 0;
-    for (let t = 0; t < cashflows.length; t++) {
-      npvVal += cashflows[t] / Math.pow(1 + rate, t);
-    }
-    return npvVal;
+    return cashflows.reduce((acc, cf, t) => acc + cf / Math.pow(1 + rate, t), 0);
   }
 
   function irr(cashflows, guess = 0.1) {
@@ -497,16 +541,13 @@
       let npvVal = 0;
       let dNpv = 0;
       for (let t = 0; t < cashflows.length; t++) {
-        let denom = Math.pow(1 + rate, t);
+        const denom = Math.pow(1 + rate, t);
         npvVal += cashflows[t] / denom;
-        if (t > 0) {
-          dNpv -= t * cashflows[t] / (denom * (1 + rate));
-        }
+        if (t > 0) dNpv -= t * cashflows[t] / (denom * (1 + rate));
       }
-      if (!isFinite(npvVal) || !isFinite(dNpv)) return NaN;
-      if (Math.abs(dNpv) < 1e-10) break;
-      let newRate = rate - npvVal / dNpv;
-      if (!isFinite(newRate)) return NaN;
+      if (!isFinite(npvVal) || !isFinite(dNpv) || Math.abs(dNpv) < 1e-10) break;
+      const newRate = rate - npvVal / dNpv;
+      if (!isFinite(newRate)) break;
       if (Math.abs(newRate - rate) < 1e-7) return newRate;
       rate = newRate;
     }
@@ -520,6 +561,15 @@
     const rate = irr(cashflows);
     if (!isFinite(rate) || rate < -0.99 || rate > 5) return null;
     return rate * 100;
+  }
+
+  function coloniesPlanAtYear(params, t) {
+    const base = params.colonies;
+    if (t <= 1 || !params.enableExpansion) return Math.max(0, base);
+    if (params.expansionMode === 'percent') {
+      return Math.max(0, Math.round(base * Math.pow(1 + params.expansionPercent, t - 1)));
+    }
+    return Math.max(0, base + (t - 1) * params.expansionIncrement);
   }
 
   function computeScenario(params) {
@@ -553,12 +603,21 @@
       costEscalation,
       priceEscalation,
       discountRate,
-      priceFactor
+      priceFactor,
+      contingencyRate,
+      enableYear1LowerYield,
+      year1YieldFactor,
+      enableExpansion,
+      expansionMode,
+      expansionIncrement,
+      expansionPercent,
+      colonySetupCostPerColony
     } = params;
 
     let cashflows = [];
     let benefits = [];
     let totalCosts = [];
+    let effectiveColoniesSeries = [];
     let pvBenefits = 0;
     let pvCosts = 0;
     let cumCF = 0;
@@ -567,15 +626,18 @@
     for (let t = 0; t <= T; t++) {
       const yearFactor = t > 0 ? Math.pow(1 + costEscalation, t - 1) : 1;
       const price = t > 0 ? baseHoneyPrice * priceFactor * Math.pow(1 + priceEscalation, t - 1) : baseHoneyPrice * priceFactor;
-      const effectiveColonies = t === 0 ? colonies : Math.max(0, colonies * Math.pow(1 - mortalityRate, t - 1));
+      const plannedColonies = coloniesPlanAtYear({ colonies, enableExpansion, expansionMode, expansionIncrement, expansionPercent }, t);
+      const effectiveColonies = t === 0 ? colonies : Math.max(0, plannedColonies * Math.pow(1 - mortalityRate, Math.max(0, t - 1)));
+      effectiveColoniesSeries.push(effectiveColonies);
 
       let benefit = 0;
       if (t > 0) {
-        const honeyKg = effectiveColonies * honeyYieldPerColony;
+        const yieldFactor = enableYear1LowerYield && t === 1 ? year1YieldFactor : 1;
+        const honeyKg = effectiveColonies * honeyYieldPerColony * yieldFactor;
         const honeyRev = honeyKg * price;
-        const propRev  = effectiveColonies * propIncomePerColony;
-        const soapRev  = effectiveColonies * soapIncomePerColony;
-        const otherRev = effectiveColonies * otherIncomePerColony;
+        const propRev  = effectiveColonies * propIncomePerColony * yieldFactor;
+        const soapRev  = effectiveColonies * soapIncomePerColony * yieldFactor;
+        const otherRev = effectiveColonies * otherIncomePerColony * yieldFactor;
         benefit = honeyRev + propRev + soapRev + otherRev;
       }
 
@@ -583,8 +645,8 @@
       if (t === 0) {
         directCost = devCost0;
       } else {
-        const effectiveColoniesPrev = Math.max(0, colonies * Math.pow(1 - mortalityRate, t - 1));
-        const honeyKg = effectiveColoniesPrev * honeyYieldPerColony;
+        const yieldFactor = enableYear1LowerYield && t === 1 ? year1YieldFactor : 1;
+        const honeyKg = effectiveColonies * honeyYieldPerColony * yieldFactor;
         let packagingAnnual = 0;
         if (enablePackaging && honeyKg > 0) {
           const bottles = Math.ceil((honeyKg * 1000) / bottleSizeMl);
@@ -593,23 +655,26 @@
 
         let transportAnnual = 0;
         if (enableTransport) {
-          if (transportMode === "perKg") {
-            transportAnnual = honeyKg * transportCostPerKg;
-          } else {
-            transportAnnual = transportCostAnnual;
-          }
+          transportAnnual = transportMode === "perKg" ? honeyKg * transportCostPerKg : transportCostAnnual;
         }
 
         const feedingAnnual = enableFeeding ? feedingCostAnnual : 0;
         const complianceAnnual = enableCompliance ? complianceCostAnnual : 0;
-        const mortalityReplacement = effectiveColoniesPrev * mortalityRate * replacementColonyCost;
+        const mortalityReplacement = effectiveColonies * mortalityRate * replacementColonyCost;
+
+        let costNewColonies = 0;
+        if (t > 1 && enableExpansion) {
+          const prevPlan = coloniesPlanAtYear({ colonies, enableExpansion, expansionMode, expansionIncrement, expansionPercent }, t - 1);
+          const delta = Math.max(0, plannedColonies - prevPlan);
+          costNewColonies = delta * colonySetupCostPerColony;
+        }
 
         const annualBase = baseInputAnnual + baseLabourAnnual + baseMiscAnnual;
-        const annualOption = packagingAnnual + transportAnnual + feedingAnnual + complianceAnnual + mortalityReplacement;
+        const annualOption = packagingAnnual + transportAnnual + feedingAnnual + complianceAnnual + mortalityReplacement + costNewColonies;
         directCost = (annualBase + annualOption) * yearFactor;
       }
 
-      const contingency = directCost * 0.10;
+      const contingency = directCost * contingencyRate;
       const totalCost = directCost + contingency;
       const cf = benefit - totalCost;
 
@@ -618,9 +683,7 @@
       totalCosts.push(totalCost);
 
       cumCF += cf;
-      if (paybackYear === null && cumCF >= 0 && t > 0) {
-        paybackYear = t;
-      }
+      if (paybackYear === null && cumCF >= 0 && t > 0) paybackYear = t;
 
       const df = Math.pow(1 + discountRate, t);
       pvBenefits += benefit / df;
@@ -639,7 +702,8 @@
       npv: npvVal,
       irr: irrVal,
       bcr: bcrVal,
-      paybackYear
+      paybackYear,
+      effectiveColoniesSeries
     };
   }
 
@@ -675,19 +739,6 @@
     return (low + high) / 2;
   }
 
-  function getValue(id) {
-    const el = document.getElementById(id);
-    if (!el) return '';
-    if (el.type === 'checkbox') return el.checked;
-    if (el.type === 'radio') {
-      const checked = document.querySelector(`input[name="${el.name}"]:checked`);
-      return checked ? checked.value : '';
-    }
-    const val = el.value;
-    const num = parseFloat(val);
-    return isNaN(num) ? val : num;
-  }
-
   function setValue(id, val) {
     const el = document.getElementById(id);
     if (!el) return;
@@ -713,6 +764,9 @@
     document.getElementById('transportFields').style.display = document.getElementById('enableTransport').checked ? 'block' : 'none';
     document.getElementById('feedingFields').style.display = document.getElementById('enableFeeding').checked ? 'block' : 'none';
     document.getElementById('complianceFields').style.display = document.getElementById('enableCompliance').checked ? 'block' : 'none';
+    const transportMode = document.querySelector('input[name="transportMode"]:checked').value;
+    document.getElementById('transportCostPerKg').parentElement.style.display = transportMode === 'perKg' ? 'block' : 'none';
+    document.getElementById('transportCostAnnual').parentElement.style.display = transportMode === 'annual' ? 'block' : 'none';
   }
 
   function updateColonyEstimate() {
@@ -721,7 +775,7 @@
       const area = parseFloat(document.getElementById('areaAcre').value) || 0;
       const density = parseFloat(document.getElementById('density').value) || 0;
       const colonies = Math.max(0, Math.round(area * density));
-      document.getElementById('colonyEstimate').textContent = `Anggaran bilangan koloni: ${fmt(colonies,0)}`;
+      document.getElementById('colonyEstimate').textContent = `Anggaran bilangan koloni: ${fmtNumber(colonies,0)}`;
     } else {
       document.getElementById('colonyEstimate').textContent = '';
     }
@@ -740,8 +794,10 @@
     const required = [
       { id: 'yieldPerColony', min: 0 },
       { id: 'price', min: 0 },
-      { id: 'discountRate', min: 0 },
-      { id: 'duration', min: 1 },
+      { id: 'discountRate', min: 0, max: 100 },
+      { id: 'duration', min: 1, max: 30 },
+      { id: 'mortalityRatePercent', min: 0, max: 100 },
+      { id: 'contingencyPercent', min: 0, max: 100 }
     ];
     if (mode === 'detailed') {
       required.push({ id: 'areaAcre', min: 0 }, { id: 'density', min: 0 });
@@ -751,13 +807,24 @@
 
     required.forEach(f => {
       const val = parseFloat(document.getElementById(f.id).value);
-      if (isNaN(val) || val < f.min) {
-        setError(f.id, 'Isi nombor sah (>= ' + f.min + ').');
+      if (isNaN(val) || val < f.min || (f.max !== undefined && val > f.max)) {
+        const limitText = f.max !== undefined ? `${f.min} - ${f.max}` : `>= ${f.min}`;
+        setError(f.id, 'Isi nombor sah (' + limitText + ').');
         valid = false;
       } else {
         setError(f.id, '');
       }
     });
+
+    if (document.getElementById('enablePackaging').checked) {
+      const bottleSize = parseFloat(document.getElementById('bottleSizeMl').value);
+      if (isNaN(bottleSize) || bottleSize < 1) {
+        setError('bottleSizeMl', 'Saiz botol mesti sekurang-kurangnya 1 ml.');
+        valid = false;
+      }
+    } else {
+      setError('bottleSizeMl', '');
+    }
 
     const errorSummary = document.getElementById('errorSummary');
     errorSummary.style.display = valid ? 'none' : 'block';
@@ -792,10 +859,11 @@
     const colonyReplaceCostPerCol = parseFloat(document.getElementById('colonyReplacementCostPerColony').value) || 0;
     const landRentPerAcreAnnual = parseFloat(document.getElementById('landRentPerAcreAnnual').value) || 0;
 
-    const T = parseInt(document.getElementById('duration').value) || 0;
-    const discountRate = (parseFloat(document.getElementById('discountRate').value) || 0) / 100;
+    const T = clamp(parseInt(document.getElementById('duration').value) || 0, 1, 30);
+    const discountRate = clamp((parseFloat(document.getElementById('discountRate').value) || 0), 0, 100) / 100;
+    const contingencyRate = clamp((parseFloat(document.getElementById('contingencyPercent').value) || 0), 0, 100) / 100;
 
-    const mortalityRate = (parseFloat(document.getElementById('mortalityRatePercent').value) || 0) / 100;
+    const mortalityRate = clamp((parseFloat(document.getElementById('mortalityRatePercent').value) || 0), 0, 100) / 100;
     const replacementColonyCost = parseFloat(document.getElementById('replacementColonyCost').value) || 0;
     const costEscalation = (parseFloat(document.getElementById('costEscalationPercent').value) || 0) / 100;
     const priceEscalation = (parseFloat(document.getElementById('priceEscalationPercent').value) || 0) / 100;
@@ -829,6 +897,14 @@
     const baseInputAnnual = annualFenceMaintEq + annualColonyReplaceEq + extractorMaintAnnual + insectControlAnnual;
     const baseLabourAnnual = labourAnnual;
     const baseMiscAnnual = areaAcre * landRentPerAcreAnnual;
+
+    const enableYear1LowerYield = document.getElementById('enableYear1LowerYield').checked;
+    const year1YieldFactor = clamp((parseFloat(document.getElementById('year1YieldFactor').value) || 70) / 100, 0, 1.5);
+
+    const enableExpansion = document.getElementById('enableExpansion').checked;
+    const expansionMode = document.querySelector('input[name="expansionMode"]:checked').value;
+    const expansionIncrement = parseFloat(document.getElementById('expansionIncrement').value) || 0;
+    const expansionPercent = ((parseFloat(document.getElementById('expansionPercent').value) || 0) / 100);
 
     return {
       mode,
@@ -876,9 +952,25 @@
       fenceMaintPerAcre,
       extractorMaintAnnual,
       colonyReplaceCostPerCol,
-      landRentPerAcreAnnual
+      landRentPerAcreAnnual,
+      contingencyRate,
+      enableYear1LowerYield,
+      year1YieldFactor,
+      enableExpansion,
+      expansionMode,
+      expansionIncrement,
+      expansionPercent
     };
   }
+
+  function debounce(fn, delay = 400) {
+    let timer;
+    return (...args) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn.apply(null, args), delay);
+    };
+  }
+  const saveStateDebounced = debounce(saveState, 400);
 
   function saveState() {
     const data = {};
@@ -917,9 +1009,7 @@
     try {
       const data = JSON.parse(stored);
       Object.keys(defaultState).forEach(key => {
-        if (data[key] !== undefined) {
-          setValue(key, data[key]);
-        }
+        if (data[key] !== undefined) setValue(key, data[key]);
       });
     } catch (e) { console.warn('Tidak dapat memuat simpanan.'); }
   }
@@ -932,6 +1022,7 @@
     clearResults();
     clearErrors();
     setStatusMessage('');
+    updateQuickPreview();
   }
 
   function applyDemo() {
@@ -977,13 +1068,21 @@
       enableFeeding: true,
       feedingCostAnnual: 800,
       enableCompliance: true,
-      complianceCostAnnual: 600
+      complianceCostAnnual: 600,
+      enableYear1LowerYield: true,
+      year1YieldFactor: 70,
+      contingencyPercent: 10,
+      enableExpansion: true,
+      expansionMode: 'increment',
+      expansionIncrement: 5,
+      expansionPercent: 0
     };
     Object.entries({ ...defaultState, ...demoState }).forEach(([k,v]) => setValue(k,v));
     toggleModeUI();
     toggleOptionalSections();
     updateColonyEstimate();
     clearErrors();
+    updateQuickPreview();
   }
 
   function clearResults() {
@@ -991,6 +1090,7 @@
     if (cfChartInstance) { cfChartInstance.destroy(); cfChartInstance = null; }
     if (cumCfChartInstance) { cumCfChartInstance.destroy(); cumCfChartInstance = null; }
     if (npvSensChartInstance) { npvSensChartInstance.destroy(); npvSensChartInstance = null; }
+    if (tornadoChartInstance) { tornadoChartInstance.destroy(); tornadoChartInstance = null; }
   }
 
   function summarizeOptionalCosts(params) {
@@ -999,213 +1099,108 @@
     if (params.enableTransport) items.push('Pengangkutan/pos');
     if (params.enableFeeding) items.push('Feeding');
     if (params.enableCompliance) items.push('Pensijilan/ujian/lesen');
+    if (params.enableExpansion) items.push('Tambah koloni tahunan');
     return items.length ? items.join(', ') : 'Tiada kos tambahan dipilih';
   }
 
-  function optionalCostBreakdown(params, honeyKg) {
-    let packaging = 0, transport = 0, feeding = 0, compliance = 0, mortalityReplace = 0;
+  function computeYear1OptionalCosts(params) {
+    const plannedColonies = coloniesPlanAtYear(params, 1);
+    const effectiveColoniesYear1 = plannedColonies;
+    const yieldFactor = params.enableYear1LowerYield ? params.year1YieldFactor : 1;
+    const honeyKg = effectiveColoniesYear1 * params.honeyYieldPerColony * yieldFactor;
+    let packaging = 0;
     if (params.enablePackaging && honeyKg > 0) {
       const bottles = Math.ceil((honeyKg * 1000) / params.bottleSizeMl);
       packaging = bottles * (params.bottleCost + params.labelCost + params.packagingCost);
     }
-    if (params.enableTransport) {
-      transport = params.transportMode === 'perKg' ? honeyKg * params.transportCostPerKg : params.transportCostAnnual;
-    }
-    if (params.enableFeeding) feeding = params.feedingCostAnnual;
-    if (params.enableCompliance) compliance = params.complianceCostAnnual;
-    mortalityReplace = honeyKg > 0 ? (params.colonies * params.mortalityRate * params.replacementColonyCost) : 0;
+    const transport = params.enableTransport ? (params.transportMode === 'perKg' ? honeyKg * params.transportCostPerKg : params.transportCostAnnual) : 0;
+    const feeding = params.enableFeeding ? params.feedingCostAnnual : 0;
+    const compliance = params.enableCompliance ? params.complianceCostAnnual : 0;
+    const mortalityReplace = effectiveColoniesYear1 * params.mortalityRate * params.replacementColonyCost;
     const total = packaging + transport + feeding + compliance + mortalityReplace;
-    return {
-      total,
-      details: [
-        params.enablePackaging ? `Pembotolan/label: RM ${fmt(packaging)}` : null,
-        params.enableTransport ? `Pengangkutan/pos: RM ${fmt(transport)}` : null,
-        params.enableFeeding ? `Feeding: RM ${fmt(feeding)}` : null,
-        params.enableCompliance ? `Pensijilan/ujian: RM ${fmt(compliance)}` : null,
-        params.mortalityRate > 0 ? `Ganti koloni (risiko): RM ${fmt(mortalityReplace)}` : null
-      ].filter(Boolean).join(' | ')
-    };
+    const details = [
+      params.enablePackaging ? `Pembotolan/label: RM ${fmtNumber(packaging)}` : null,
+      params.enableTransport ? `Pengangkutan/pos: RM ${fmtNumber(transport)}` : null,
+      params.enableFeeding ? `Feeding: RM ${fmtNumber(feeding)}` : null,
+      params.enableCompliance ? `Pensijilan/ujian: RM ${fmtNumber(compliance)}` : null,
+      params.mortalityRate > 0 ? `Ganti koloni (risiko): RM ${fmtNumber(mortalityReplace)}` : null
+    ].filter(Boolean).join(' | ');
+    return { total, details, honeyKg };
   }
 
-  function runAnalysis() {
-    if (!validateInputs()) return;
-    const farmerName = document.getElementById('farmerName').value.trim();
-    const villageName = document.getElementById('villageName').value.trim();
-    const phoneNumber = document.getElementById('phoneNumber').value.trim();
-
+  function updateQuickPreview() {
     const params = buildParams();
-    const {
-      colonies, honeyYieldPerColony, honeyPrice, propIncomePerCol, soapIncomePerCol, otherIncomePerCol,
-      devCost0, baseInputAnnual, baseLabourAnnual, baseMiscAnnual, T, discountRate,
-      mortalityRate, replacementColonyCost, costEscalation, priceEscalation
-    } = params;
+    const plannedColonies = coloniesPlanAtYear(params, 1);
+    const effectiveColoniesYear1 = plannedColonies;
+    const yieldFactor = params.enableYear1LowerYield ? params.year1YieldFactor : 1;
+    const honeyKg = effectiveColoniesYear1 * params.honeyYieldPerColony * yieldFactor;
+    const bottles = params.enablePackaging ? Math.ceil((honeyKg * 1000) / Math.max(1, params.bottleSizeMl)) : 0;
 
-    const scenarioParams = {
-      T,
-      colonies,
-      honeyYieldPerColony,
-      baseHoneyPrice: honeyPrice,
-      propIncomePerColony: propIncomePerCol,
-      soapIncomePerColony: soapIncomePerCol,
-      otherIncomePerColony: otherIncomePerCol,
-      devCost0,
-      baseInputAnnual,
-      baseLabourAnnual,
-      baseMiscAnnual,
-      bottleSizeMl: params.bottleSizeMl,
-      bottleCost: params.bottleCost,
-      labelCost: params.labelCost,
-      packagingCost: params.packagingCost,
-      enablePackaging: params.enablePackaging,
-      enableTransport: params.enableTransport,
-      transportMode: params.transportMode,
-      transportCostPerKg: params.transportCostPerKg,
-      transportCostAnnual: params.transportCostAnnual,
-      enableFeeding: params.enableFeeding,
-      feedingCostAnnual: params.feedingCostAnnual,
-      enableCompliance: params.enableCompliance,
-      complianceCostAnnual: params.complianceCostAnnual,
-      mortalityRate,
-      replacementColonyCost,
-      costEscalation,
-      priceEscalation,
-      discountRate,
-      priceFactor: 1
-    };
+    const year1Optional = computeYear1OptionalCosts(params);
+    const annualBase = params.baseInputAnnual + params.baseLabourAnnual + params.baseMiscAnnual;
+    const directCost = annualBase + year1Optional.total;
+    const totalCost = directCost + directCost * params.contingencyRate;
 
-    const baseScenario = computeScenario(scenarioParams);
-    const breakEvenPrice = computeBreakEvenHoneyPrice(scenarioParams);
+    document.getElementById('previewHoney').textContent = `${fmtNumber(honeyKg)} kg`;
+    document.getElementById('previewBottles').textContent = params.enablePackaging ? fmtNumber(bottles,0) + ' botol' : 'Tidak aktif';
+    document.getElementById('previewCost').textContent = 'RM ' + fmtNumber(totalCost);
+  }
 
-    const totalBenefits = baseScenario.benefits.reduce((a,b) => a + b, 0);
-    const totalCosts = baseScenario.totalCosts.reduce((a,b) => a + b, 0);
-    const roi = totalCosts > 0 ? ((totalBenefits - totalCosts) / totalCosts) * 100 : null;
+  function buildMultiFactorSensitivity(params, scenarioParams) {
+    const baseNPV = computeScenario({ ...scenarioParams, priceFactor: 1 }).npv;
+    const cases = [
+      { key: 'price', label: 'Harga madu', low: 0.8, high: 1.2 },
+      { key: 'yieldPerColony', label: 'Hasil per koloni', low: 0.8, high: 1.2 },
+      { key: 'mortalityRatePercent', label: 'Mortaliti koloni', low: 0.8, high: 1.2 },
+      { key: 'labourCostAnnual', label: 'Kos tenaga kerja', low: 0.8, high: 1.2 }
+    ];
 
-    const paybackText = baseScenario.paybackYear ? "Tahun ke-" + baseScenario.paybackYear : "Tidak pulang modal dalam tempoh analisis";
-    const irrText = baseScenario.irr !== null ? `${fmt(baseScenario.irr)} %` : 'IRR tidak dapat dikira (aliran tunai tiada perubahan tanda)';
+    const rows = cases.map(c => {
+      let lowParams = { ...params };
+      let highParams = { ...params };
+      if (c.key === 'mortalityRatePercent') {
+        lowParams.mortalityRatePercent = clamp(params.mortalityRatePercent * c.low, 0, 100);
+        highParams.mortalityRatePercent = clamp(params.mortalityRatePercent * c.high, 0, 100);
+      } else {
+        lowParams[c.key] = params[c.key] * c.low;
+        highParams[c.key] = params[c.key] * c.high;
+      }
 
-    const otherName = params.otherProductName ? ` (${params.otherProductName})` : '';
-    const honeyKgYear1 = colonies * honeyYieldPerColony;
-    const optionalCosts = optionalCostBreakdown(params, honeyKgYear1);
+      const lowScenario = computeScenario({ ...scenarioParams, baseHoneyPrice: lowParams.price || params.price, honeyYieldPerColony: lowParams.yieldPerColony || params.yieldPerColony, mortalityRate: (lowParams.mortalityRatePercent || params.mortalityRatePercent)/100, baseLabourAnnual: lowParams.labourCostAnnual || params.labourCostAnnual });
+      const highScenario = computeScenario({ ...scenarioParams, baseHoneyPrice: highParams.price || params.price, honeyYieldPerColony: highParams.yieldPerColony || params.yieldPerColony, mortalityRate: (highParams.mortalityRatePercent || params.mortalityRatePercent)/100, baseLabourAnnual: highParams.labourCostAnnual || params.labourCostAnnual });
 
-    const honeyRevenueAnnual = honeyKgYear1 * honeyPrice;
-    const propRevenueAnnual = colonies * propIncomePerCol;
-    const soapRevenueAnnual = colonies * soapIncomePerCol;
-    const otherRevenueAnnual = colonies * otherIncomePerCol;
-    const totalAnnualRevenue = honeyRevenueAnnual + propRevenueAnnual + soapRevenueAnnual + otherRevenueAnnual;
-
-    const keyCards = `
-      <div class="three-cards">
-        <div class="mini-card"><h4>Untung bersih setahun (Tahun 1)</h4><div class="badge">RM ${fmt(baseScenario.cashflows[1] || 0)}</div><small class="note">Bersih selepas kos & kontinjensi pada tahun pertama operasi.</small></div>
-        <div class="mini-card"><h4>Tahun pulang modal</h4><div class="badge">${paybackText}</div><small class="note">Tahun di mana aliran tunai terkumpul mula positif.</small></div>
-        <div class="mini-card"><h4>Harga madu minimum tak rugi</h4><div class="badge">${breakEvenPrice !== null ? 'RM ' + fmt(breakEvenPrice) + ' /kg' : '-'}</div><small class="note">Harga madu anggaran supaya NPV ≈ 0 (ambil kira hasil lain).</small></div>
-      </div>
-    `;
-
-    const metricsTable = `
-      <h3>Analisis Lanjut / Profesional</h3>
-      <table>
-        <tr><th style="text-align:left;">Penunjuk</th><th>Nilai</th><th style="text-align:left;">Takrif Ringkas</th></tr>
-        <tr><td style="text-align:left;">NPV (Nilai Kini Bersih)</td><td>RM ${coloredFmt(baseScenario.npv)}</td><td style="text-align:left;">Lebihan nilai bersih selepas diskaun pada kadar ${fmt(discountRate*100,0)}%.</td></tr>
-        <tr><td style="text-align:left;">IRR (Kadar Pulangan Dalaman)</td><td>${baseScenario.irr !== null ? coloredFmt(baseScenario.irr) + ' %' : '-'}</td><td style="text-align:left;">${irrText}</td></tr>
-        <tr><td style="text-align:left;">BCR (Nisbah Faedah-Kos)</td><td>${baseScenario.bcr !== null ? baseScenario.bcr.toFixed(2) : '-'}</td><td style="text-align:left;">Jika &gt; 1, faedah melebihi kos.</td></tr>
-        <tr><td style="text-align:left;">ROI (Pulangan atas Pelaburan)</td><td>${roi !== null ? coloredFmt(roi) + ' %' : '-'}</td><td style="text-align:left;">Peratus keuntungan kasar berbanding jumlah kos sepanjang projek.</td></tr>
-        <tr><td style="text-align:left;">Harga Pulang Modal Madu</td><td>${breakEvenPrice !== null ? 'RM ' + fmt(breakEvenPrice) + ' /kg' : '-'}</td><td style="text-align:left;">Harga minimum untuk NPV ≈ 0 termasuk pendapatan sampingan.</td></tr>
-        <tr><td style="text-align:left;">Tempoh Pulang Modal (Payback Period)</td><td>${paybackText}</td><td style="text-align:left;">Tahun aliran tunai terkumpul mula positif.</td></tr>
-      </table>
-    `;
-
-    let conclusionClass = "conclusion-box";
-    let conclusionHeader = "";
-    let conclusionText = "";
-    let suggestionHtml = "<ul>";
-
-    if (baseScenario.npv > 0 && baseScenario.bcr !== null && baseScenario.bcr > 1 && roi !== null && roi > 20 && (baseScenario.irr === null || baseScenario.irr > discountRate*100)) {
-      conclusionClass += " conclusion-good";
-      conclusionHeader = "✅ PROJEK BERBALOI";
-      conclusionText = "Dengan anggaran semasa, projek ini menunjukkan pulangan yang baik dan berpotensi memberi keuntungan stabil kepada penternak.";
-      suggestionHtml += "<li>Tingkatkan pemasaran (jenama sendiri, jual terus kepada pengguna) untuk kekalkan harga jual di paras tinggi.</li>";
-      suggestionHtml += "<li>Kekalkan mutu penjagaan koloni supaya hasil madu per koloni stabil atau meningkat.</li>";
-      suggestionHtml += "<li>Beli input secara pukal atau melalui koperasi untuk mengurangkan kos.</li>";
-      suggestionHtml += "<li>Boleh tambah bilangan koloni secara berperingkat selepas projek stabil.</li>";
-    } else if (baseScenario.npv > 0 && baseScenario.bcr !== null && baseScenario.bcr >= 1) {
-      conclusionClass += " conclusion-moderate";
-      conclusionHeader = "⚠ PROJEK BERBALOI (BERJAGA-JAGA)";
-      conclusionText = "Projek ini masih boleh diteruskan tetapi margin keuntungan tidak terlalu besar. Penternak perlu mengawal kos dan berusaha meningkatkan hasil.";
-      suggestionHtml += "<li>Naikkan hasil madu per koloni melalui latihan teknikal dan amalan penternakan yang lebih baik.</li>";
-      suggestionHtml += "<li>Bandingkan beberapa pembekal input untuk mendapatkan harga yang lebih rendah.</li>";
-      suggestionHtml += "<li>Kawal kos tenaga kerja supaya selari dengan saiz projek.</li>";
-      suggestionHtml += "<li>Manfaatkan bantuan kerajaan, program agropreneur atau geran yang tersedia.</li>";
-    } else {
-      conclusionClass += " conclusion-bad";
-      conclusionHeader = "❌ PROJEK BERISIKO / KURANG BERBALOI";
-      conclusionText = "Dengan anggaran semasa, projek ini kelihatan berisiko atau kurang menguntungkan. Penternak disaran menilai semula sebelum melabur modal yang besar.";
-      suggestionHtml += "<li>Cuba tingkatkan harga jual melalui pembungkusan lebih baik, pensijilan atau pemasaran terus kepada pengguna.</li>";
-      suggestionHtml += "<li>Tingkatkan hasil per koloni melalui bimbingan teknikal dan pengurusan koloni yang baik.</li>";
-      suggestionHtml += "<li>Kurangkan kos pembangunan awal dengan mula pada skala lebih kecil.</li>";
-      suggestionHtml += "<li>Kurangkan kos tenaga kerja melalui kerjasama keluarga atau koperasi.</li>";
-      suggestionHtml += "<li>Cari bantuan geran, subsidi atau skim sokongan agensi kerajaan untuk mengurangkan beban modal awal.</li>";
-    }
-    suggestionHtml += "</ul>";
-
-    const resultHtml = `
-      <div class="result-box">
-        <p><strong>Nama penternak:</strong> ${farmerName || '-'} | <strong>Kampung / lokasi:</strong> ${villageName || '-'} | <strong>No. telefon:</strong> ${phoneNumber || '-'}</p>
-        <p><strong>Mod:</strong> ${params.mode === 'simple' ? 'Ringkas (Kampung)' : 'Terperinci (Profesional)'}</p>
-        <p><strong>Bilangan koloni digunakan dalam kiraan:</strong> ${fmt(colonies,0)}</p>
-        <p><strong>Jumlah hasil madu tahun pertama:</strong> ${fmt(honeyKgYear1)} kg → anggaran nilai: RM ${fmt(honeyRevenueAnnual)}</p>
-        <p><strong>Anggaran hasil propolis setahun:</strong> RM ${fmt(propRevenueAnnual)} | <strong>Sabun:</strong> RM ${fmt(soapRevenueAnnual)} | <strong>Lain-lain${otherName}:</strong> RM ${fmt(otherRevenueAnnual)}</p>
-        <p><strong>Jumlah semua hasil setahun (Tahun 1):</strong> RM ${fmt(totalAnnualRevenue)}</p>
-        <p><strong>Jumlah kos pembangunan (tahun 0):</strong> RM ${fmt(devCost0)}</p>
-        <p><strong>Kos bahan input tahunan setara (asas):</strong> RM ${fmt(baseInputAnnual)} / tahun</p>
-        <p><strong>Kos tenaga kerja tahunan:</strong> RM ${fmt(baseLabourAnnual)} / tahun | <strong>Kos pelbagai/utiliti:</strong> RM ${fmt(baseMiscAnnual)} / tahun</p>
-        <p><strong>Kos tahunan tambahan dipilih:</strong> ${summarizeOptionalCosts(params)}</p>
-        <p><strong>Anggaran kos tambahan Tahun 1:</strong> RM ${fmt(optionalCosts.total)}${optionalCosts.details ? ' (' + optionalCosts.details + ')' : ''}</p>
-        ${keyCards}
-        ${metricsTable}
-      </div>
-      <div class="${conclusionClass}">
-        <div class="conclusion-title">${conclusionHeader}</div>
-        <p>${conclusionText}</p>
-        <strong>Cara untuk tambah keuntungan / kurangkan risiko:</strong>
-        ${suggestionHtml}
-      </div>
-    `;
-
-    const resultsDiv = document.getElementById('results');
-    resultsDiv.innerHTML = resultHtml;
-
-    let table = "<h3>Jadual Aliran Tunai</h3>";
-    table += "<table><tr><th>Tahun</th><th>Hasil (RM)</th><th>Jumlah Kos (RM)</th><th>CF (RM)</th></tr>";
-    for (let t = 0; t <= T; t++) {
-      table += `<tr><td style="text-align:center">${t}</td><td>${coloredFmt(baseScenario.benefits[t])}</td><td>${coloredFmt(baseScenario.totalCosts[t])}</td><td>${coloredFmt(baseScenario.cashflows[t])}</td></tr>`;
-    }
-    table += "</table>";
-    resultsDiv.innerHTML += table;
-
-    let sensTable = "<h3>Analisis Sensitiviti Harga Madu (NPV, IRR, BCR)</h3>";
-    sensTable += "<table><tr><th>Senario</th><th>Faktor Harga</th><th>Harga madu/kg (RM)</th><th>NPV (RM)</th><th>IRR (%)</th><th>BCR</th></tr>";
-
-    const factors = [0.8, 0.9, 1.0, 1.1, 1.2];
-    const sensLabels = [];
-    const sensNPV = [];
-
-    factors.forEach((f, idx) => {
-      const sc = computeScenario({ ...scenarioParams, priceFactor: f });
-      sensLabels.push((f * 100).toFixed(0) + "%");
-      sensNPV.push(sc.npv);
-      sensTable += `<tr><td style="text-align:center">${idx + 1}</td><td>${(f * 100).toFixed(0)}%</td><td>${fmt(honeyPrice * f)}</td><td>${coloredFmt(sc.npv)}</td><td>${sc.irr !== null ? coloredFmt(sc.irr) : '-'}</td><td>${sc.bcr !== null ? sc.bcr.toFixed(2) : '-'}</td></tr>`;
+      const lowNPV = lowScenario.npv;
+      const highNPV = highScenario.npv;
+      const range = highNPV - lowNPV;
+      return { label: c.label, lowNPV, baseNPV, highNPV, range };
     });
-    sensTable += "</table>";
-    resultsDiv.innerHTML += sensTable;
 
-    resultsDiv.innerHTML += `<p class="note">Nota: Kos kontinjensi 10% ditambah automatik setiap tahun atas jumlah kos langsung (pembangunan, bahan input, tenaga kerja, pelbagai dan kos tambahan).</p>`;
+    rows.sort((a,b) => Math.abs(b.range) - Math.abs(a.range));
 
+    let tableHtml = "<h3>Analisis Sensitiviti Pelbagai Faktor (NPV)</h3>";
+    tableHtml += "<table><tr><th>Faktor</th><th>NPV Rendah</th><th>NPV Asas</th><th>NPV Tinggi</th><th>Julat</th></tr>";
+    rows.forEach(r => {
+      tableHtml += `<tr><td style="text-align:left">${r.label}</td><td>${coloredFmt(r.lowNPV)}</td><td>${coloredFmt(r.baseNPV)}</td><td>${coloredFmt(r.highNPV)}</td><td>${coloredFmt(r.range)}</td></tr>`;
+    });
+    tableHtml += "</table>";
+
+    const chartData = rows.map(r => ({
+      label: r.label,
+      low: r.lowNPV,
+      high: r.highNPV,
+      range: r.range
+    }));
+
+    return { tableHtml, chartData };
+  }
+
+  function renderCharts(baseScenario, sensLabels, sensNPV) {
     const yearLabels = [];
     const cfData = [];
     let cum = 0;
     const cumData = [];
 
-    for (let t = 0; t <= T; t++) {
+    for (let t = 0; t < baseScenario.cashflows.length; t++) {
       yearLabels.push("Tahun " + t);
       const cf = baseScenario.cashflows[t];
       cfData.push(cf);
@@ -1246,14 +1241,249 @@
       data: { labels: sensLabels, datasets: [{ label: 'NPV mengikut Senario Harga Madu (RM)', data: sensNPV, backgroundColor: npvBarColors, borderColor: npvBorderColors, borderWidth: 1 }] },
       options: { responsive: true, plugins: { legend: { display: true } }, scales: { y: { beginAtZero: true } } }
     });
+  }
+
+  function renderTornadoChart(chartData) {
+    const labels = chartData.map(d => d.label);
+    const lowValues = chartData.map(d => d.low);
+    const highValues = chartData.map(d => d.high);
+
+    if (tornadoChartInstance) tornadoChartInstance.destroy();
+    const ctx = document.getElementById('tornadoChart').getContext('2d');
+    tornadoChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'NPV Rendah', data: lowValues, backgroundColor: 'rgba(255,82,82,0.6)', borderColor: 'rgba(255,82,82,1)', borderWidth: 1 },
+          { label: 'NPV Tinggi', data: highValues, backgroundColor: 'rgba(139,195,74,0.6)', borderColor: 'rgba(139,195,74,1)', borderWidth: 1 }
+        ]
+      },
+      options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: true } }, scales: { x: { beginAtZero: true } } }
+    });
+  }
+
+  function downloadCSV(filename, rows) {
+    const csvContent = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+  }
+
+  function downloadCashflowCSV() {
+    const params = buildParams();
+    const scenarioParams = { ...params, baseHoneyPrice: params.honeyPrice, baseLabourAnnual: params.labourAnnual, priceFactor: 1 };
+    const sc = computeScenario(scenarioParams);
+    const rows = [["Tahun","KoloniEfektif","Hasil(RM)","Kos(RM)","AliranTunai(RM)","CF_Terkumpul(RM)","PV_CF(RM)"]];
+    let cum = 0;
+    sc.cashflows.forEach((cf, t) => {
+      cum += cf;
+      const pv = cf / Math.pow(1 + params.discountRate, t);
+      rows.push([t, fmtNumber(sc.effectiveColoniesSeries[t] || 0,0), fmtNumber(sc.benefits[t]), fmtNumber(sc.totalCosts[t]), fmtNumber(cf), fmtNumber(cum), fmtNumber(pv)]);
+    });
+    downloadCSV("aliran_tunai_kelulut.csv", rows);
+  }
+
+  function downloadSensitivityCSV() {
+    const params = buildParams();
+    const scenarioParams = { ...params, baseHoneyPrice: params.honeyPrice, baseLabourAnnual: params.labourAnnual, priceFactor: 1 };
+    const multiSens = buildMultiFactorSensitivity(params, scenarioParams);
+    const baseNPV = computeScenario(scenarioParams).npv;
+    const rows = [["Faktor","LowNPV","BaseNPV","HighNPV","RangeNPV"]];
+    multiSens.chartData.forEach(r => rows.push([r.label, fmtNumber(r.low), fmtNumber(baseNPV), fmtNumber(r.high), fmtNumber(r.range)]));
+    downloadCSV("sensitiviti_kelulut.csv", rows);
+  }
+
+  function runAnalysis() {
+    if (!validateInputs()) return;
+    const farmerName = document.getElementById('farmerName').value.trim();
+    const villageName = document.getElementById('villageName').value.trim();
+    const phoneNumber = document.getElementById('phoneNumber').value.trim();
+
+    const params = buildParams();
+    const {
+      colonies, honeyYieldPerColony, honeyPrice, propIncomePerCol, soapIncomePerCol, otherIncomePerCol,
+      devCost0, baseInputAnnual, baseLabourAnnual, baseMiscAnnual, T, discountRate,
+      mortalityRate, replacementColonyCost, costEscalation, priceEscalation, contingencyRate
+    } = params;
+
+    const scenarioParams = {
+      T,
+      colonies,
+      honeyYieldPerColony,
+      baseHoneyPrice: honeyPrice,
+      propIncomePerColony: propIncomePerCol,
+      soapIncomePerColony: soapIncomePerCol,
+      otherIncomePerColony: otherIncomePerCol,
+      devCost0,
+      baseInputAnnual,
+      baseLabourAnnual,
+      baseMiscAnnual,
+      bottleSizeMl: params.bottleSizeMl,
+      bottleCost: params.bottleCost,
+      labelCost: params.labelCost,
+      packagingCost: params.packagingCost,
+      enablePackaging: params.enablePackaging,
+      enableTransport: params.enableTransport,
+      transportMode: params.transportMode,
+      transportCostPerKg: params.transportCostPerKg,
+      transportCostAnnual: params.transportCostAnnual,
+      enableFeeding: params.enableFeeding,
+      feedingCostAnnual: params.feedingCostAnnual,
+      enableCompliance: params.enableCompliance,
+      complianceCostAnnual: params.complianceCostAnnual,
+      mortalityRate,
+      replacementColonyCost,
+      costEscalation,
+      priceEscalation,
+      discountRate,
+      priceFactor: 1,
+      contingencyRate,
+      enableYear1LowerYield: params.enableYear1LowerYield,
+      year1YieldFactor: params.year1YieldFactor,
+      enableExpansion: params.enableExpansion,
+      expansionMode: params.expansionMode,
+      expansionIncrement: params.expansionIncrement,
+      expansionPercent: params.expansionPercent,
+      colonySetupCostPerColony: params.colonySetupCostPerColony
+    };
+
+    const baseScenario = computeScenario(scenarioParams);
+    const breakEvenPrice = computeBreakEvenHoneyPrice(scenarioParams);
+
+    const totalBenefits = baseScenario.benefits.reduce((a,b) => a + b, 0);
+    const totalCosts = baseScenario.totalCosts.reduce((a,b) => a + b, 0);
+    const roi = totalCosts > 0 ? ((totalBenefits - totalCosts) / totalCosts) * 100 : null;
+    const roiYear1 = baseScenario.totalCosts[1] > 0 ? (baseScenario.cashflows[1] / baseScenario.totalCosts[1]) * 100 : null;
+
+    const paybackText = baseScenario.paybackYear ? "Tahun ke-" + baseScenario.paybackYear : "Tidak pulang modal dalam tempoh analisis";
+    const irrText = baseScenario.irr !== null ? `${fmtNumber(baseScenario.irr)} %` : 'IRR tidak dapat dikira (aliran tunai tiada perubahan tanda)';
+
+    const otherName = params.otherProductName ? ` (${params.otherProductName})` : '';
+    const year1Optional = computeYear1OptionalCosts(params);
+    const honeyRevenueAnnual = year1Optional.honeyKg * honeyPrice;
+    const propRevenueAnnual = colonies * propIncomePerCol;
+    const soapRevenueAnnual = colonies * soapIncomePerCol;
+    const otherRevenueAnnual = colonies * otherIncomePerCol;
+    const totalAnnualRevenue = honeyRevenueAnnual + propRevenueAnnual + soapRevenueAnnual + otherRevenueAnnual;
+
+    const keyCards = `
+      <div class="three-cards">
+        <div class="mini-card"><h4>Untung bersih setahun (Tahun 1)</h4><div class="badge">RM ${fmtNumber(baseScenario.cashflows[1] || 0)}</div><small class="note">Bersih selepas kos & kontinjensi pada tahun pertama operasi.</small></div>
+        <div class="mini-card"><h4>Tahun pulang modal</h4><div class="badge">${paybackText}</div><small class="note">Tahun di mana aliran tunai terkumpul mula positif.</small></div>
+        <div class="mini-card"><h4>Harga madu minimum tak rugi</h4><div class="badge">${breakEvenPrice !== null ? 'RM ' + fmtNumber(breakEvenPrice) + ' /kg' : '-'}</div><small class="note">Harga madu anggaran supaya NPV ≈ 0 (ambil kira hasil lain).</small></div>
+      </div>
+    `;
+
+    const metricsTable = `
+      <h3>Analisis Lanjut / Profesional</h3>
+      <table>
+        <tr><th style="text-align:left;">Penunjuk</th><th>Nilai</th><th style="text-align:left;">Takrif Ringkas</th></tr>
+        <tr><td style="text-align:left;">NPV (Nilai Kini Bersih)</td><td>RM ${coloredFmt(baseScenario.npv)}</td><td style="text-align:left;">Lebihan nilai bersih selepas diskaun pada kadar ${fmtNumber(discountRate*100,0)}%.</td></tr>
+        <tr><td style="text-align:left;">IRR (Kadar Pulangan Dalaman)</td><td>${baseScenario.irr !== null ? coloredFmt(baseScenario.irr) + ' %' : '-'}</td><td style="text-align:left;">${irrText}</td></tr>
+        <tr><td style="text-align:left;">BCR (Nisbah Faedah-Kos)</td><td>${baseScenario.bcr !== null ? baseScenario.bcr.toFixed(2) : '-'}</td><td style="text-align:left;">Jika &gt; 1, faedah melebihi kos.</td></tr>
+        <tr><td style="text-align:left;">ROI (Keseluruhan)</td><td>${roi !== null ? coloredFmt(roi) + ' %' : '-'}</td><td style="text-align:left;">Pulangan sepanjang projek.</td></tr>
+        <tr><td style="text-align:left;">ROI Tahun 1</td><td>${roiYear1 !== null ? coloredFmt(roiYear1) + ' %' : '-'}</td><td style="text-align:left;">Pulangan pada tahun operasi pertama sahaja.</td></tr>
+        <tr><td style="text-align:left;">Harga Pulang Modal Madu</td><td>${breakEvenPrice !== null ? 'RM ' + fmtNumber(breakEvenPrice) + ' /kg' : '-'}</td><td style="text-align:left;">Harga minimum untuk NPV ≈ 0 termasuk pendapatan sampingan.</td></tr>
+        <tr><td style="text-align:left;">Tempoh Pulang Modal (Payback Period)</td><td>${paybackText}</td><td style="text-align:left;">Tahun aliran tunai terkumpul mula positif.</td></tr>
+      </table>
+    `;
+
+    let conclusionClass = "conclusion-box";
+    let conclusionHeader = "";
+    let conclusionText = "";
+    let suggestionHtml = "<ul>";
+
+    if (baseScenario.npv > 0 && baseScenario.bcr !== null && baseScenario.bcr > 1 && roi !== null && roi > 20 && (baseScenario.irr === null || baseScenario.irr > discountRate*100)) {
+      conclusionClass += " conclusion-good";
+      conclusionHeader = "✅ PROJEK BERBALOI";
+      conclusionText = "Dengan anggaran semasa, projek ini menunjukkan pulangan yang baik dan berpotensi memberi keuntungan stabil kepada penternak.";
+      suggestionHtml += "<li>Tingkatkan pemasaran (jenama sendiri, jual terus kepada pengguna) untuk kekalkan harga jual di paras tinggi.</li>";
+      suggestionHtml += "<li>Kekalkan mutu penjagaan koloni supaya hasil madu per koloni stabil atau meningkat.</li>";
+      suggestionHtml += "<li>Beli input secara pukal atau melalui koperasi untuk mengurangkan kos.</li>";
+      suggestionHtml += "<li>Boleh tambah bilangan koloni secara berperingkat selepas projek stabil.</li>";
+    } else if (baseScenario.npv > 0 && baseScenario.bcr !== null && baseScenario.bcr >= 1) {
+      conclusionClass += " conclusion-moderate";
+      conclusionHeader = "⚠ PROJEK BERBALOI (BERJAGA-JAGA)";
+      conclusionText = "Projek ini masih boleh diteruskan tetapi margin keuntungan tidak terlalu besar. Penternak perlu mengawal kos dan berusaha meningkatkan hasil.";
+      suggestionHtml += "<li>Naikkan hasil madu per koloni melalui latihan teknikal dan amalan penternakan yang lebih baik.</li>";
+      suggestionHtml += "<li>Bandingkan beberapa pembekal input untuk mendapatkan harga yang lebih rendah.</li>";
+      suggestionHtml += "<li>Kawal kos tenaga kerja supaya selari dengan saiz projek.</li>";
+      suggestionHtml += "<li>Manfaatkan bantuan kerajaan, program agropreneur atau geran yang tersedia.</li>";
+    } else {
+      conclusionClass += " conclusion-bad";
+      conclusionHeader = "❌ PROJEK BERISIKO / KURANG BERBALOI";
+      conclusionText = "Dengan anggaran semasa, projek ini kelihatan berisiko atau kurang menguntungkan. Penternak disaran menilai semula sebelum melabur modal yang besar.";
+      suggestionHtml += "<li>Cuba tingkatkan harga jual melalui pembungkusan lebih baik, pensijilan atau pemasaran terus kepada pengguna.</li>";
+      suggestionHtml += "<li>Tingkatkan hasil per koloni melalui bimbingan teknikal dan pengurusan koloni yang baik.</li>";
+      suggestionHtml += "<li>Kurangkan kos pembangunan awal dengan mula pada skala lebih kecil.</li>";
+      suggestionHtml += "<li>Kurangkan kos tenaga kerja melalui kerjasama keluarga atau koperasi.</li>";
+      suggestionHtml += "<li>Cari bantuan geran, subsidi atau skim sokongan agensi kerajaan untuk mengurangkan beban modal awal.</li>";
+    }
+    suggestionHtml += "</ul>";
+
+    const resultsDiv = document.getElementById('results');
+    resultsDiv.innerHTML = `
+      <div class="result-box">
+        <p><strong>Nama penternak:</strong> ${farmerName || '-'} | <strong>Kampung / lokasi:</strong> ${villageName || '-'} | <strong>No. telefon:</strong> ${phoneNumber || '-'}</p>
+        <p><strong>Mod:</strong> ${params.mode === 'simple' ? 'Ringkas (Kampung)' : 'Terperinci (Profesional)'}</p>
+        <p><strong>Bilangan koloni digunakan dalam kiraan:</strong> ${fmtNumber(colonies,0)}</p>
+        <p><strong>Jumlah hasil madu tahun pertama:</strong> ${fmtNumber(year1Optional.honeyKg)} kg → anggaran nilai: RM ${fmtNumber(honeyRevenueAnnual)}</p>
+        <p><strong>Anggaran hasil propolis setahun:</strong> RM ${fmtNumber(propRevenueAnnual)} | <strong>Sabun:</strong> RM ${fmtNumber(soapRevenueAnnual)} | <strong>Lain-lain${otherName}:</strong> RM ${fmtNumber(otherRevenueAnnual)}</p>
+        <p><strong>Jumlah semua hasil setahun (Tahun 1):</strong> RM ${fmtNumber(totalAnnualRevenue)}</p>
+        <p><strong>Jumlah kos pembangunan (tahun 0):</strong> RM ${fmtNumber(devCost0)}</p>
+        <p><strong>Kos bahan input tahunan setara (asas):</strong> RM ${fmtNumber(baseInputAnnual)} / tahun</p>
+        <p><strong>Kos tenaga kerja tahunan:</strong> RM ${fmtNumber(baseLabourAnnual)} / tahun | <strong>Kos pelbagai/utiliti:</strong> RM ${fmtNumber(baseMiscAnnual)} / tahun</p>
+        <p><strong>Kos tahunan tambahan dipilih:</strong> ${summarizeOptionalCosts(params)}</p>
+        <p><strong>Anggaran kos tambahan Tahun 1:</strong> RM ${fmtNumber(year1Optional.total)}${year1Optional.details ? ' (' + year1Optional.details + ')' : ''}</p>
+        ${keyCards}
+        ${metricsTable}
+      </div>
+      <div class="${conclusionClass}">
+        <div class="conclusion-title">${conclusionHeader}</div>
+        <p>${conclusionText}</p>
+        <strong>Cara untuk tambah keuntungan / kurangkan risiko:</strong>
+        ${suggestionHtml}
+      </div>
+    `;
+
+    let table = "<h3>Jadual Aliran Tunai</h3>";
+    table += "<table><tr><th>Tahun</th><th>Koloni Efektif</th><th>Hasil (RM)</th><th>Jumlah Kos (RM)</th><th>CF (RM)</th></tr>";
+    for (let t = 0; t <= T; t++) {
+      table += `<tr><td style=\"text-align:center\">${t}</td><td>${fmtNumber(baseScenario.effectiveColoniesSeries[t] || 0,0)}</td><td>${coloredFmt(baseScenario.benefits[t])}</td><td>${coloredFmt(baseScenario.totalCosts[t])}</td><td>${coloredFmt(baseScenario.cashflows[t])}</td></tr>`;
+    }
+    table += "</table>";
+    resultsDiv.innerHTML += table;
+
+    let sensTable = "<h3>Analisis Sensitiviti Harga Madu (NPV, IRR, BCR)</h3>";
+    sensTable += "<table><tr><th>Senario</th><th>Faktor Harga</th><th>Harga madu/kg (RM)</th><th>NPV (RM)</th><th>IRR (%)</th><th>BCR</th></tr>";
+    const factors = [0.8, 0.9, 1.0, 1.1, 1.2];
+    const sensLabels = [];
+    const sensNPV = [];
+    factors.forEach((f, idx) => {
+      const sc = computeScenario({ ...scenarioParams, priceFactor: f });
+      sensLabels.push((f * 100).toFixed(0) + "%");
+      sensNPV.push(sc.npv);
+      sensTable += `<tr><td style=\"text-align:center\">${idx + 1}</td><td>${(f * 100).toFixed(0)}%</td><td>${fmtNumber(honeyPrice * f)}</td><td>${coloredFmt(sc.npv)}</td><td>${sc.irr !== null ? coloredFmt(sc.irr) : '-'}</td><td>${sc.bcr !== null ? sc.bcr.toFixed(2) : '-'}</td></tr>`;
+    });
+    sensTable += "</table>";
+    resultsDiv.innerHTML += sensTable;
+
+    const multiSensitivity = buildMultiFactorSensitivity(params, scenarioParams);
+    resultsDiv.innerHTML += multiSensitivity.tableHtml;
+    resultsDiv.innerHTML += `<p class=\"note\">Nota: Kadar kontinjensi ditetapkan kepada ${fmtNumber(params.contingencyRate * 100,0)}% dan digunakan ke atas semua kos setiap tahun.</p>`;
+
+    renderCharts(baseScenario, sensLabels, sensNPV);
+    renderTornadoChart(multiSensitivity.chartData);
 
     resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
     const now = new Date();
     const dateStr = now.toLocaleDateString('ms-MY');
     const timeStr = now.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' });
-    document.getElementById('reportMeta').textContent = `Versi kalkulator: v2.0 | Tarikh laporan dijana: ${dateStr} ${timeStr}`;
-
+    document.getElementById('reportMeta').textContent = `Versi kalkulator: v2.1 | Tarikh laporan dijana: ${dateStr} ${timeStr}`;
     saveState();
     setStatusMessage('Analisis berjaya dijana pada ' + dateStr + ' ' + timeStr + '.');
   }
@@ -1279,8 +1509,85 @@
         pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
         heightLeft -= pdfHeight;
       }
-      pdf.save('Laporan_Projek_Madu_Kelulut.pdf');
+      pdf.save('Laporan_Projek_Madu_Kelulut_ringkas.pdf');
     });
+  }
+
+  function downloadProfessionalPDF() {
+    const params = buildParams();
+    const scenarioParams = { ...params, baseHoneyPrice: params.honeyPrice, baseLabourAnnual: params.labourAnnual, priceFactor: 1 };
+    const sc = computeScenario(scenarioParams);
+    const baseNPV = sc.npv;
+    const irrVal = sc.irr;
+    const bcrVal = sc.bcr;
+    const totalCosts = sc.totalCosts.reduce((a,b)=>a+b,0);
+    const totalBenefits = sc.benefits.reduce((a,b)=>a+b,0);
+    const roi = totalCosts > 0 ? ((totalBenefits - totalCosts) / totalCosts) * 100 : null;
+    const roiYear1 = sc.totalCosts[1] > 0 ? (sc.cashflows[1] / sc.totalCosts[1]) * 100 : null;
+    const paybackText = sc.paybackYear ? `Tahun ke-${sc.paybackYear}` : "Tidak pulang modal dalam tempoh analisis";
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const margin = 12;
+    let y = 14;
+
+    pdf.setFontSize(14);
+    pdf.text("Laporan Profesional - Projek Madu Kelulut", margin, y); y += 8;
+    pdf.setFontSize(10);
+    const now = new Date();
+    pdf.text(`Nama penternak: ${document.getElementById('farmerName').value || '-'}`, margin, y); y += 6;
+    pdf.text(`Lokasi: ${document.getElementById('villageName').value || '-'}`, margin, y); y += 6;
+    pdf.text(`Tarikh/jam: ${now.toLocaleDateString('ms-MY')} ${now.toLocaleTimeString('ms-MY', {hour:'2-digit', minute:'2-digit'})}`, margin, y); y += 6;
+    pdf.text(`Versi kalkulator: v2.1`, margin, y); y += 8;
+
+    pdf.setFontSize(12);
+    pdf.text("Ringkasan Utama", margin, y); y += 6;
+    pdf.setFontSize(10);
+    pdf.text(`Untung Tahun 1: RM ${fmtNumber(sc.cashflows[1] || 0)}`, margin, y); y += 6;
+    pdf.text(`Payback: ${paybackText}`, margin, y); y += 6;
+    pdf.text(`Break-even harga madu: RM ${fmtNumber(computeBreakEvenHoneyPrice(scenarioParams) || 0)} /kg`, margin, y); y += 6;
+    pdf.text(`NPV: RM ${fmtNumber(baseNPV)}`, margin, y); y += 6;
+    pdf.text(`IRR: ${irrVal !== null ? fmtNumber(irrVal) + ' %' : '-'}`, margin, y); y += 6;
+    pdf.text(`BCR: ${bcrVal !== null ? bcrVal.toFixed(2) : '-'}`, margin, y); y += 6;
+    pdf.text(`ROI keseluruhan: ${roi !== null ? fmtNumber(roi) + ' %' : '-'}`, margin, y); y += 6;
+    pdf.text(`ROI Tahun 1: ${roiYear1 !== null ? fmtNumber(roiYear1) + ' %' : '-'}`, margin, y); y += 10;
+
+    const addTable = (headers, rows) => {
+      const colWidth = (pageWidth - margin*2) / headers.length;
+      pdf.setFontSize(10);
+      headers.forEach((h, idx) => pdf.text(h, margin + idx * colWidth, y));
+      y += 6;
+      rows.forEach(r => {
+        if (y > 280) { pdf.addPage(); y = 14; }
+        r.forEach((c, idx) => pdf.text(String(c), margin + idx * colWidth, y));
+        y += 6;
+      });
+      y += 4;
+    };
+
+    pdf.setFontSize(12);
+    pdf.text("Jadual Aliran Tunai", margin, y); y += 6;
+    const cfRows = sc.cashflows.map((cf, t) => [t, fmtNumber(sc.effectiveColoniesSeries[t] || 0,0), fmtNumber(sc.benefits[t]), fmtNumber(sc.totalCosts[t]), fmtNumber(cf)]);
+    addTable(["Tahun","Koloni","Hasil","Kos","CF"], cfRows);
+
+    pdf.addPage();
+    y = 14;
+    pdf.setFontSize(12);
+    pdf.text("Analisis Sensitiviti (Pelbagai Faktor)", margin, y); y += 6;
+    const multiSens = buildMultiFactorSensitivity(params, scenarioParams);
+    const sensRows = multiSens.chartData.map(r => [r.label, fmtNumber(r.low), fmtNumber(baseNPV), fmtNumber(r.high), fmtNumber(r.range)]);
+    addTable(["Faktor","NPV Rendah","NPV Asas","NPV Tinggi","Julat"], sensRows);
+    pdf.text("Nota: Nilai dalam RM, dibundarkan ke 2 perpuluhan.", margin, y > 280 ? 280 : y);
+
+    const pageCount = pdf.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      pdf.setPage(i);
+      pdf.setFontSize(8);
+      pdf.text(`Halaman ${i} / ${pageCount}`, pageWidth - margin*2, 290);
+    }
+
+    pdf.save('Laporan_Projek_Madu_Kelulut_profesional.pdf');
   }
 
   function setupListeners() {
@@ -1292,20 +1599,23 @@
 
     ['modeSimple','modeDetailed','areaAcre','density'].forEach(id => {
       const el = document.getElementById(id);
-      if (el) el.addEventListener('input', () => { updateColonyEstimate(); saveState(); validateInputs(); });
+      if (el) el.addEventListener('input', () => { updateColonyEstimate(); saveStateDebounced(); validateInputs(); updateQuickPreview(); });
     });
 
     document.querySelectorAll('input, select').forEach(el => {
-      el.addEventListener('input', () => { if (el.id) setError(el.id, ''); saveState(); });
-      if (el.type === 'radio') el.addEventListener('change', () => { saveState(); });
+      el.addEventListener('input', () => { if (el.id) setError(el.id, ''); saveStateDebounced(); updateQuickPreview(); });
+      if (el.type === 'radio') el.addEventListener('change', () => { saveStateDebounced(); updateQuickPreview(); toggleOptionalSections(); });
     });
 
-    document.getElementById('enablePackaging').addEventListener('change', () => { toggleOptionalSections(); saveState(); });
-    document.getElementById('enableTransport').addEventListener('change', () => { toggleOptionalSections(); saveState(); });
-    document.getElementById('enableFeeding').addEventListener('change', () => { toggleOptionalSections(); saveState(); });
-    document.getElementById('enableCompliance').addEventListener('change', () => { toggleOptionalSections(); saveState(); });
+    document.getElementById('enablePackaging').addEventListener('change', () => { toggleOptionalSections(); saveStateDebounced(); updateQuickPreview(); });
+    document.getElementById('enableTransport').addEventListener('change', () => { toggleOptionalSections(); saveStateDebounced(); updateQuickPreview(); });
+    document.getElementById('enableFeeding').addEventListener('change', () => { toggleOptionalSections(); saveStateDebounced(); updateQuickPreview(); });
+    document.getElementById('enableCompliance').addEventListener('change', () => { toggleOptionalSections(); saveStateDebounced(); updateQuickPreview(); });
+    document.getElementById('enableYear1LowerYield').addEventListener('change', () => { saveStateDebounced(); updateQuickPreview(); });
+    document.getElementById('enableExpansion').addEventListener('change', () => { saveStateDebounced(); updateQuickPreview(); });
     document.querySelectorAll('input[name="mode"]').forEach(el => el.addEventListener('change', toggleModeUI));
-    document.querySelectorAll('input[name="transportMode"]').forEach(el => el.addEventListener('change', saveState));
+    document.querySelectorAll('input[name="transportMode"]').forEach(el => el.addEventListener('change', () => { toggleOptionalSections(); saveStateDebounced(); }));
+    document.querySelectorAll('input[name="expansionMode"]').forEach(el => el.addEventListener('change', () => { saveStateDebounced(); }));
   }
 
   window.onload = () => {
@@ -1316,6 +1626,7 @@
     updateColonyEstimate();
     clearErrors();
     setupListeners();
+    updateQuickPreview();
   };
 </script>
 </body>
