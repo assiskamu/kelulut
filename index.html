@@ -136,6 +136,10 @@
     .mode-row { display: flex; gap: 10px; flex-wrap: wrap; }
     .inline { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .inline input[type="radio"] { width: auto; }
+    .section-map { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; background: #0f0f0f; border: 1px solid #2b2418; padding: 6px 8px; border-radius: 8px; font-size: 12px; }
+    .section-map a { color: var(--amber); text-decoration: none; padding: 2px 6px; border-radius: 999px; border: 1px solid #333; background: #1a1a1a; }
+    .section-map a:hover { background: #222; }
+    .map-sep { color: #777; }
     details { background: #121212; border: 1px solid #222; border-radius: 6px; padding: 6px 8px; margin-top: 8px; }
     summary { cursor: pointer; color: var(--gold); font-weight: bold; }
     .error-text { color: var(--danger); font-size: 11px; min-height: 14px; }
@@ -163,7 +167,7 @@
   </p>
 
   <!-- Maklumat Penternak -->
-  <div class="section-title">Maklumat Penternak</div>
+  <div class="section-title" id="sectionA">A. Maklumat Ladang</div>
   <label>Nama penternak:
     <input id="farmerName" type="text" placeholder="Contoh: Assis Kamu">
   </label>
@@ -174,8 +178,21 @@
     <input id="phoneNumber" type="text" placeholder="Contoh: 012-3456789">
   </label>
 
+  <div class="section-title">Peta Ringkas Bahagian</div>
+  <nav class="section-map" aria-label="Peta Ringkas Bahagian">
+    <a href="#sectionA">A Ladang</a><span class="map-sep">|</span>
+    <a href="#sectionB">B Hasil</a><span class="map-sep">|</span>
+    <a href="#sectionB2">B2 Risiko</a><span class="map-sep">|</span>
+    <a href="#sectionC">C Kos Mula</a><span class="map-sep">|</span>
+    <a href="#sectionD">D Input</a><span class="map-sep">|</span>
+    <a href="#sectionE">E Upah</a><span class="map-sep">|</span>
+    <a href="#sectionF">F Pelbagai</a><span class="map-sep">|</span>
+    <a href="#sectionG">G Tetapan</a><span class="map-sep">|</span>
+    <a href="#sectionH">H Graf</a>
+  </nav>
+
   <!-- LANGKAH 1 -->
-  <div class="section-title">Langkah 1: Saiz ternakan & hasil (A + B + Risiko)</div>
+  <div class="section-title">Langkah 1: Saiz ternakan & hasil (B & B2)</div>
   <div class="step-card">
     <div class="mode-row">
       <label class="pill"><input type="radio" name="mode" value="simple" id="modeSimple"> Mod Ringkas (Kampung)</label>
@@ -214,7 +231,7 @@
       </div>
     </div>
 
-    <div class="section-title">B. Hasil Produk</div>
+    <div class="section-title" id="sectionB">B. Hasil Produk</div>
     <label>Harga jual madu kelulut (RM/kg):
       <input id="price" type="number" min="0" step="1" value="200">
     </label>
@@ -232,7 +249,7 @@
       <input id="otherIncomePerCol" type="number" min="0" step="1" value="0">
     </label>
 
-    <div class="section-title">Risiko Penternakan (mortaliti)</div>
+    <div class="section-title" id="sectionB2">B2. Risiko Penternakan (Mortaliti)</div>
     <label>Kadar koloni mati/rosak setahun (%):
       <input id="mortalityRatePercent" type="number" min="0" max="100" step="0.5" value="0">
     </label>
@@ -261,7 +278,7 @@
   <div class="section-title">Langkah 2: Kos (C – F + kos tambahan)</div>
   <div class="step-card">
     <details open>
-      <summary>A. & C. Kos Pembangunan (Tahun 0)</summary>
+      <summary id="sectionC">C. Kos Pembangunan (Tahun 0)</summary>
       <label>Pembersihan kawasan (RM/ekar, sekali – tahun 0):
         <input id="clearCostPerAcre" type="number" min="0" step="50" value="1000">
       </label>
@@ -286,10 +303,14 @@
     </details>
 
     <details open>
-      <summary>D. Kos Bahan Input & Penyelenggaraan</summary>
+      <summary id="sectionD">D. Kos Bahan Input</summary>
       <label>Kos kawalan serangga (RM/setahun):
         <input id="insectControlAnnual" type="number" min="0" step="10" value="100">
       </label>
+    </details>
+
+    <details open>
+      <summary id="sectionF">F. Kos Pelbagai (Penyelenggaraan & Utiliti)</summary>
       <label>Penyelenggaraan pagar (RM/ekar setiap 3 tahun):
         <input id="fenceMaintPerAcre" type="number" min="0" step="10" value="300">
       </label>
@@ -299,15 +320,15 @@
       <label>Penggantian kotak koloni + kotak topping (RM/koloni setiap 2 tahun):
         <input id="colonyReplacementCostPerColony" type="number" min="0" step="10" value="50">
       </label>
+      <label>Sewa tanah (RM/ekar setahun – kos utiliti):
+        <input id="landRentPerAcreAnnual" type="number" min="0" step="10" value="500">
+      </label>
     </details>
 
     <details open>
-      <summary>E. & F. Kos Tenaga Kerja & Pelbagai</summary>
+      <summary id="sectionE">E. Kos Tenaga Kerja</summary>
       <label>Kos tenaga kerja (RM/setahun):
         <input id="labourCostAnnual" type="number" min="0" step="50" value="6000">
-      </label>
-      <label>Sewa tanah (RM/ekar setahun – kos utiliti):
-        <input id="landRentPerAcreAnnual" type="number" min="0" step="10" value="500">
       </label>
     </details>
 
@@ -369,7 +390,7 @@
   </details>
 
   <!-- LANGKAH 3 -->
-  <div class="section-title">Langkah 3: Parameter analisis (G) & tindakan</div>
+  <div class="section-title" id="sectionG">Langkah 3: G. Parameter Analisis & Tindakan</div>
   <div class="step-card">
     <label>Kadar Diskaun (% setahun):
       <input id="discountRate" type="number" min="0" step="0.1" value="3">
@@ -408,7 +429,7 @@
   <div id="results" class="summary"></div>
 
   <!-- H. Graf Visual -->
-  <div class="section-title">H. Graf Visual</div>
+  <div class="section-title" id="sectionH">H. Graf Visual</div>
   <p class="note">Graf membantu melihat aliran tunai, bila projek pulang modal dan kesan perubahan harga madu.</p>
   <canvas id="cfChart" height="180"></canvas>
   <canvas id="cumCfChart" height="180"></canvas>
