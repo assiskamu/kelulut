@@ -141,10 +141,10 @@
     summary::-webkit-details-marker { display: none; }
     details > summary:focus { outline: 2px solid rgba(255, 202, 40, 0.6); outline-offset: 2px; }
     .step { background: #0f0f0f; border: 1px solid #2b2418; border-radius: 10px; margin-top: 12px; }
-    .step > summary { background: linear-gradient(90deg, rgba(255,202,40,0.18), rgba(18,18,18,0.9)); font-size: 16px; padding: 12px 14px; }
+    .step > summary { background: linear-gradient(90deg, rgba(255,202,40,0.18), rgba(18,18,18,0.9)); font-size: 16px; padding: 12px 14px; display: flex; align-items: center; gap: 10px; }
     .step[open] > summary { border-bottom: 1px solid rgba(255, 213, 79, 0.4); }
     .section { background: #131313; border: 1px solid #2a2a2a; }
-    .section > summary { background: #1a1a1a; font-size: 14px; }
+    .section > summary { background: #1a1a1a; font-size: 14px; display: flex; align-items: center; gap: 8px; }
     .section-body { padding: 8px 10px 10px; }
     .error-text { color: var(--danger); font-size: 11px; min-height: 14px; }
     .invalid { border-color: var(--danger); box-shadow: 0 0 0 1px rgba(255,82,82,0.4); }
@@ -157,6 +157,34 @@
     .hint-example { font-size: 0.9em; opacity: 0.85; margin-top: 6px; color: #c9c9c9; }
     .helper-box { padding: 10px; border-radius: 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); margin-top: 8px; }
     .note.small { font-size: 11px; color: #d0d0d0; }
+    .metric-desc { font-size: 12px; line-height: 1.4; color: #e6e6e6; }
+    .metric-desc strong { color: #ffecb3; }
+    .step-badge, .section-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-weight: bold;
+      font-size: 11px;
+      letter-spacing: 0.4px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      text-transform: uppercase;
+      min-width: 48px;
+    }
+    .step-badge.step-1 { background: rgba(255, 193, 7, 0.85); color: #1b1b1b; }
+    .step-badge.step-2 { background: rgba(100, 181, 246, 0.85); color: #0b0b0b; }
+    .step-badge.step-3 { background: rgba(129, 199, 132, 0.85); color: #0b0b0b; }
+    .section-badge { min-width: 34px; font-size: 10px; color: #0c0c0c; }
+    .section-a { background: rgba(255, 204, 128, 0.9); }
+    .section-b { background: rgba(255, 213, 79, 0.9); }
+    .section-b2 { background: rgba(255, 171, 145, 0.9); }
+    .section-c { background: rgba(144, 202, 249, 0.9); }
+    .section-d { background: rgba(165, 214, 167, 0.9); }
+    .section-e { background: rgba(206, 147, 216, 0.9); }
+    .section-f { background: rgba(128, 203, 196, 0.9); }
+    .section-g { background: rgba(188, 170, 164, 0.9); }
+    .section-h { background: rgba(176, 190, 197, 0.9); }
     .req-badge { background: #ffeb3b; color: #2b2b2b; font-size: 10px; font-weight: bold; padding: 1px 6px; border-radius: 999px; margin-left: 6px; border: 1px solid #ffd600; letter-spacing: 0.4px; }
     .req-input { background: #fff7b0; border: 1px solid #ffd400; box-shadow: 0 0 6px rgba(255, 214, 0, 0.45); color: #1e1e1e; }
     .req-input::placeholder { color: #6b5a00; }
@@ -177,10 +205,10 @@
   </p>
 
   <details class="step" id="step1">
-    <summary>Langkah 1: Maklumat ladang & hasil (A, B, B2)</summary>
+    <summary><span class="step-badge step-1">Langkah 1</span> Maklumat ladang & hasil (Bahagian A, B, B2)</summary>
     <div class="step-card">
       <details class="section" id="secA">
-        <summary id="sectionA">A. Maklumat Ladang</summary>
+        <summary id="sectionA"><span class="section-badge section-a">A</span> Maklumat Ladang</summary>
         <div class="section-body">
           <label>Nama penternak:
             <input id="farmerName" type="text">
@@ -195,7 +223,7 @@
       </details>
 
       <details class="section" id="secB">
-        <summary id="sectionB">B. Hasil Produk</summary>
+        <summary id="sectionB"><span class="section-badge section-b">B</span> Hasil Produk</summary>
         <div class="section-body">
           <div class="mode-row">
             <label class="pill"><input type="radio" name="mode" value="simple" id="modeSimple"> Mod Ringkas (Kampung)</label>
@@ -254,7 +282,7 @@
       </details>
 
       <details class="section" id="secB2">
-        <summary id="sectionB2">B2. Risiko Penternakan (Mortaliti)</summary>
+        <summary id="sectionB2"><span class="section-badge section-b2">B2</span> Risiko Penternakan (Mortaliti)</summary>
         <div class="section-body">
           <label>Kadar koloni mati/rosak setahun (%):
             <input id="mortalityRatePercent" type="number" min="0" max="100" step="0.5" value="0">
@@ -292,10 +320,10 @@
   </details>
 
   <details class="step" id="step2">
-    <summary>Langkah 2: Kos (C – F + kos tambahan)</summary>
+    <summary><span class="step-badge step-2">Langkah 2</span> Kos (Bahagian C – F + kos tambahan)</summary>
     <div class="step-card">
       <details class="section" id="secC">
-        <summary id="sectionC">C. Kos Pembangunan (Tahun 0)</summary>
+        <summary id="sectionC"><span class="section-badge section-c">C</span> Kos Pembangunan (Tahun 0)</summary>
         <div class="section-body">
           <label>Pembersihan kawasan (RM/ekar, sekali – tahun 0):
             <input id="clearCostPerAcre" type="number" min="0" step="50" value="1000">
@@ -334,7 +362,7 @@
       </details>
 
       <details class="section" id="secD">
-        <summary id="sectionD">D. Kos Bahan Input</summary>
+        <summary id="sectionD"><span class="section-badge section-d">D</span> Kos Bahan Input</summary>
         <div class="section-body">
           <small class="hint">Kos bahan input ialah barang yang habis guna untuk urus koloni & jualan (contoh gula/air gula, botol, label, plastik, sarung tangan, ubat/kawalan semut/perosak dan lain-lain).</small>
           <label>Kos kawalan serangga (RM/setahun):
@@ -364,7 +392,7 @@
       </details>
 
       <details class="section" id="secE">
-        <summary id="sectionE">E. Kos Tenaga Kerja</summary>
+        <summary id="sectionE"><span class="section-badge section-e">E</span> Kos Tenaga Kerja</summary>
         <div class="section-body">
           <label>Kos tenaga kerja (RM/setahun):
             <input id="labourCostAnnual" type="number" min="0" step="50" value="6000">
@@ -373,7 +401,7 @@
       </details>
 
       <details class="section" id="secF">
-        <summary id="sectionF">F. Kos Pelbagai (Penyelenggaraan & Utiliti)</summary>
+        <summary id="sectionF"><span class="section-badge section-f">F</span> Kos Pelbagai (Penyelenggaraan & Utiliti)</summary>
         <div class="section-body">
           <label>Penyelenggaraan pagar (RM/ekar setiap 3 tahun):
             <input id="fenceMaintPerAcre" type="number" min="0" step="10" value="300">
@@ -458,10 +486,10 @@
   </details>
 
   <details class="step" id="step3">
-    <summary>Langkah 3: Analisis & Keputusan</summary>
+    <summary><span class="step-badge step-3">Langkah 3</span> Analisis & Keputusan</summary>
     <div class="step-card">
       <details class="section" id="secG">
-        <summary id="sectionG">G. Parameter Analisis & Tindakan</summary>
+        <summary id="sectionG"><span class="section-badge section-g">G</span> Parameter Analisis & Tindakan</summary>
         <div class="section-body">
           <div class="note small">Parameter analisis ialah tetapan kiraan kalkulator seperti tempoh, kadar diskaun dan anggaran kos/hasil tambahan.</div>
           <label>Kadar Diskaun (% setahun): <span class="req-badge">WAJIB</span>
@@ -511,7 +539,7 @@
       </details>
 
       <details class="section" id="secH">
-        <summary id="sectionH">H. Graf Visual</summary>
+        <summary id="sectionH"><span class="section-badge section-h">H</span> Graf Visual</summary>
         <div class="section-body">
           <p class="note">Graf membantu melihat aliran tunai, bila projek pulang modal dan kesan perubahan harga madu.</p>
           <canvas id="cfChart" height="180"></canvas>
@@ -1286,25 +1314,19 @@
   function buildMultiFactorSensitivity(params, scenarioParams) {
     const baseNPV = computeScenario({ ...scenarioParams, priceFactor: 1 }).npv;
     const cases = [
-      { key: 'price', label: 'Harga madu', low: 0.8, high: 1.2 },
-      { key: 'yieldPerColony', label: 'Hasil per koloni', low: 0.8, high: 1.2 },
-      { key: 'mortalityRatePercent', label: 'Mortaliti koloni', low: 0.8, high: 1.2 },
-      { key: 'labourCostAnnual', label: 'Kos tenaga kerja', low: 0.8, high: 1.2 }
+      { key: 'baseHoneyPrice', label: 'Harga madu', low: 0.8, high: 1.2, clamp: (v) => Math.max(0, v) },
+      { key: 'honeyYieldPerColony', label: 'Hasil per koloni', low: 0.8, high: 1.2, clamp: (v) => Math.max(0, v) },
+      { key: 'mortalityRate', label: 'Mortaliti koloni', low: 0.8, high: 1.2, clamp: (v) => clamp(v, 0, 1) },
+      { key: 'baseLabourAnnual', label: 'Kos tenaga kerja', low: 0.8, high: 1.2, clamp: (v) => Math.max(0, v) }
     ];
 
     const rows = cases.map(c => {
-      let lowParams = { ...params };
-      let highParams = { ...params };
-      if (c.key === 'mortalityRatePercent') {
-        lowParams.mortalityRatePercent = clamp(params.mortalityRatePercent * c.low, 0, 100);
-        highParams.mortalityRatePercent = clamp(params.mortalityRatePercent * c.high, 0, 100);
-      } else {
-        lowParams[c.key] = params[c.key] * c.low;
-        highParams[c.key] = params[c.key] * c.high;
-      }
+      const baseValue = scenarioParams[c.key];
+      const lowValue = c.clamp(baseValue * c.low);
+      const highValue = c.clamp(baseValue * c.high);
 
-      const lowScenario = computeScenario({ ...scenarioParams, baseHoneyPrice: lowParams.price || params.price, honeyYieldPerColony: lowParams.yieldPerColony || params.yieldPerColony, mortalityRate: (lowParams.mortalityRatePercent || params.mortalityRatePercent)/100, baseLabourAnnual: lowParams.labourCostAnnual || params.labourCostAnnual });
-      const highScenario = computeScenario({ ...scenarioParams, baseHoneyPrice: highParams.price || params.price, honeyYieldPerColony: highParams.yieldPerColony || params.yieldPerColony, mortalityRate: (highParams.mortalityRatePercent || params.mortalityRatePercent)/100, baseLabourAnnual: highParams.labourCostAnnual || params.labourCostAnnual });
+      const lowScenario = computeScenario({ ...scenarioParams, [c.key]: lowValue, priceFactor: 1 });
+      const highScenario = computeScenario({ ...scenarioParams, [c.key]: highValue, priceFactor: 1 });
 
       const lowNPV = lowScenario.npv;
       const highNPV = highScenario.npv;
@@ -1496,10 +1518,6 @@
     const roiYear1 = baseScenario.totalCosts[1] > 0 ? (baseScenario.cashflows[1] / baseScenario.totalCosts[1]) * 100 : null;
 
     const paybackText = baseScenario.paybackYear ? "Tahun ke-" + baseScenario.paybackYear : "Tidak pulang modal dalam tempoh analisis";
-    const irrText = baseScenario.irr !== null
-      ? `Macam kadar untung projek; kalau IRR > kadar diskaun, projek lebih menarik. (Anggaran IRR: ${fmtNumber(baseScenario.irr)}%)`
-      : 'Macam kadar untung projek; kalau IRR > kadar diskaun, projek lebih menarik. (IRR tidak dapat dikira kerana aliran tunai tiada perubahan tanda).';
-
     const otherName = params.otherProductName ? ` (${params.otherProductName})` : '';
     const year1Optional = computeYear1OptionalCosts(params);
     const honeyRevenueAnnual = year1Optional.honeyKg * honeyPrice;
@@ -1520,13 +1538,49 @@
       <h3>Analisis Lanjut / Profesional</h3>
       <table>
         <tr><th style="text-align:left;">Penunjuk</th><th>Nilai</th><th style="text-align:left;">Takrif Ringkas</th></tr>
-        <tr><td style="text-align:left;">NPV (Nilai Kini Bersih)</td><td>RM ${coloredFmt(baseScenario.npv)}</td><td style="text-align:left;">Lebihan untung selepas ambil kira nilai duit ikut masa; NPV &gt; 0 biasanya berbaloi.</td></tr>
-        <tr><td style="text-align:left;">IRR (Kadar Pulangan Dalaman)</td><td>${baseScenario.irr !== null ? coloredFmt(baseScenario.irr) + ' %' : '-'}</td><td style="text-align:left;">${irrText}</td></tr>
-        <tr><td style="text-align:left;">BCR (Nisbah Faedah-Kos)</td><td>${baseScenario.bcr !== null ? baseScenario.bcr.toFixed(2) : '-'}</td><td style="text-align:left;">Setiap RM1 kos dapat berapa RM manfaat; &gt; 1 biasanya bagus.</td></tr>
-        <tr><td style="text-align:left;">ROI (Keseluruhan)</td><td>${roi !== null ? coloredFmt(roi) + ' %' : '-'}</td><td style="text-align:left;">Peratus untung berbanding jumlah kos projek.</td></tr>
+        <tr>
+          <td style="text-align:left;">NPV (Nilai Kini Bersih)</td>
+          <td>RM ${coloredFmt(baseScenario.npv)}</td>
+          <td style="text-align:left;">
+            <div class="metric-desc"><strong>Apa maksud:</strong> Lebihan nilai untung selepas ambil kira nilai duit ikut masa (kadar diskaun).<br><strong>Cara baca:</strong> NPV &gt; 0 biasanya berbaloi.<br><strong>Contoh:</strong> NPV RM 5,000 bermakna ada lebihan ±RM 5,000 selepas diskaun.</div>
+          </td>
+        </tr>
+        <tr>
+          <td style="text-align:left;">IRR (Kadar Pulangan Dalaman)</td>
+          <td>${baseScenario.irr !== null ? coloredFmt(baseScenario.irr) + ' %' : '-'}</td>
+          <td style="text-align:left;">
+            <div class="metric-desc"><strong>Apa maksud:</strong> Macam “kadar untung” projek.<br><strong>Cara baca:</strong> Jika IRR &gt; kadar diskaun, projek lebih menarik.<br><strong>Contoh:</strong> IRR 18% lebih tinggi daripada diskaun 3%.</div>
+          </td>
+        </tr>
+        <tr>
+          <td style="text-align:left;">BCR (Nisbah Faedah-Kos)</td>
+          <td>${baseScenario.bcr !== null ? baseScenario.bcr.toFixed(2) : '-'}</td>
+          <td style="text-align:left;">
+            <div class="metric-desc"><strong>Apa maksud:</strong> Setiap RM1 kos dapat berapa RM manfaat.<br><strong>Cara baca:</strong> BCR &gt; 1 biasanya bagus.<br><strong>Contoh:</strong> BCR 1.30 = RM1 kos → RM1.30 manfaat.</div>
+          </td>
+        </tr>
+        <tr>
+          <td style="text-align:left;">ROI (Keseluruhan)</td>
+          <td>${roi !== null ? coloredFmt(roi) + ' %' : '-'}</td>
+          <td style="text-align:left;">
+            <div class="metric-desc"><strong>Apa maksud:</strong> Peratus untung berbanding jumlah kos projek.<br><strong>Cara baca:</strong> Lagi tinggi, lagi banyak untung.<br><strong>Contoh:</strong> ROI 20% bermakna setiap RM10,000 kos ada lebihan ±RM2,000.</div>
+          </td>
+        </tr>
         <tr><td style="text-align:left;">ROI Tahun 1</td><td>${roiYear1 !== null ? coloredFmt(roiYear1) + ' %' : '-'}</td><td style="text-align:left;">Pulangan pada tahun operasi pertama sahaja.</td></tr>
-        <tr><td style="text-align:left;">Harga Pulang Modal Madu</td><td>${breakEvenPrice !== null ? 'RM ' + fmtNumber(breakEvenPrice) + ' /kg' : '-'}</td><td style="text-align:left;">Harga minimum untuk NPV ≈ 0 termasuk pendapatan sampingan.</td></tr>
-        <tr><td style="text-align:left;">Tempoh Pulang Modal (Payback Period)</td><td>${paybackText}</td><td style="text-align:left;">Tahun aliran tunai terkumpul mula positif.</td></tr>
+        <tr>
+          <td style="text-align:left;">Harga Pulang Modal Madu</td>
+          <td>${breakEvenPrice !== null ? 'RM ' + fmtNumber(breakEvenPrice) + ' /kg' : '-'}</td>
+          <td style="text-align:left;">
+            <div class="metric-desc"><strong>Apa maksud:</strong> Harga minimum supaya untung tidak rugi (NPV ≈ 0).<br><strong>Cara baca:</strong> Jika harga pasaran lebih tinggi daripada ini, projek lebih selamat.<br><strong>Contoh:</strong> Jika break-even RM 120/kg, harga RM 150/kg biasanya ada lebihan.</div>
+          </td>
+        </tr>
+        <tr>
+          <td style="text-align:left;">Tempoh Pulang Modal (Payback Period)</td>
+          <td>${paybackText}</td>
+          <td style="text-align:left;">
+            <div class="metric-desc"><strong>Apa maksud:</strong> Tahun bila modal kembali (aliran tunai terkumpul mula positif).<br><strong>Cara baca:</strong> Lagi awal, lagi cepat modal kembali.<br><strong>Contoh:</strong> “Tahun ke-4” bermakna sekitar tahun 4 modal baru pulih.</div>
+          </td>
+        </tr>
       </table>
     `;
 
@@ -1591,11 +1645,12 @@
     `;
 
     let table = "<h3>Jadual Aliran Tunai</h3>";
-    table += "<table><tr><th>Tahun</th><th>Koloni Efektif</th><th>Hasil (RM)</th><th>Jumlah Kos (RM)</th><th>CF (RM)</th></tr>";
+    table += "<table><tr><th>Tahun</th><th>Koloni Efektif</th><th>Hasil (RM)</th><th>Jumlah Kos (RM)</th><th>Aliran Tunai Bersih (RM)</th></tr>";
     for (let t = 0; t <= T; t++) {
       table += `<tr><td style=\"text-align:center\">${t}</td><td>${fmtNumber(baseScenario.effectiveColoniesSeries[t] || 0,0)}</td><td>${coloredFmt(baseScenario.benefits[t])}</td><td>${coloredFmt(baseScenario.totalCosts[t])}</td><td>${coloredFmt(baseScenario.cashflows[t])}</td></tr>`;
     }
     table += "</table>";
+    table += "<p class=\"note small\">Aliran Tunai Bersih = Hasil − Kos. Jika negatif, bermaksud belanja lebih daripada hasil pada tahun tersebut.</p>";
     resultsDiv.innerHTML += table;
 
     let sensTable = "<h3>Analisis Sensitiviti Harga Madu (NPV, IRR, BCR)</h3>";
@@ -1786,20 +1841,21 @@
     y = 16;
     addSectionTitle("Ringkasan Metrik Utama");
     addParagraph(`NPV: RM ${fmtNumber(baseNPV)} | IRR: ${irrVal !== null ? fmtNumber(irrVal) + ' %' : '-'} | BCR: ${bcrVal !== null ? bcrVal.toFixed(2) : '-'} | ROI keseluruhan: ${roi !== null ? fmtNumber(roi) + ' %' : '-'}`);
-    addParagraph("Cara baca metrik (bahasa mudah): Metrik ini membantu kita faham untung rugi dengan cara ringkas. NPV tunjuk lebihan untung selepas ambil kira nilai duit ikut masa; NPV lebih tinggi biasanya lebih baik. IRR pula macam kadar untung projek; kalau IRR lebih tinggi daripada kadar diskaun, projek selalunya lebih menarik.");
+    addParagraph("Takrif ringkas (bahasa mudah) + contoh bacaan:");
     addBullets([
-      "Contoh: Jika NPV = RM 5,000, maknanya ada lebihan untung kira-kira RM 5,000 selepas diskaun.",
-      "IRR lebih tinggi daripada kadar diskaun = projek lebih menarik.",
-      "BCR > 1 = setiap RM1 kos dapat lebih RM1 manfaat.",
-      "ROI menunjukkan peratus untung berbanding kos keseluruhan projek."
+      "NPV (Nilai Kini Bersih): Lebihan nilai untung selepas ambil kira nilai duit ikut masa. Cara baca: NPV > 0 biasanya berbaloi. Contoh: NPV RM 5,000 bermakna ada lebihan ±RM 5,000 selepas diskaun.",
+      "IRR (Kadar Pulangan Dalaman): Macam kadar untung projek. Cara baca: jika IRR > kadar diskaun, projek lebih menarik. Contoh: IRR 18% lebih tinggi daripada diskaun 3%.",
+      "BCR (Nisbah Faedah-Kos): Setiap RM1 kos dapat berapa RM manfaat. Cara baca: BCR > 1 biasanya bagus. Contoh: BCR 1.30 = RM1 kos → RM1.30 manfaat.",
+      "ROI (Pulangan atas kos): Peratus untung berbanding jumlah kos. Cara baca: lagi tinggi, lagi baik. Contoh: kos RM 10,000, untung RM 2,000 → ROI ±20%.",
+      "Payback (Tempoh Pulang Modal): Tahun bila modal kembali (aliran tunai terkumpul mula positif). Cara baca: lagi awal, lagi cepat modal kembali. Contoh: Payback Tahun ke-4.",
+      "Break-even price (Harga minimum tak rugi): Harga madu minimum supaya projek tidak rugi (NPV ≈ 0). Cara baca: harga pasaran lebih tinggi daripada ini lebih selamat. Contoh: break-even RM 120/kg, harga RM 150/kg biasanya ada lebihan."
     ]);
-    addParagraph("Contoh ringkas: Jika kos keseluruhan RM 10,000 dan untung bersih RM 2,000, ROI lebih kurang 20%. Jika BCR = 1.3, maknanya setiap RM1 kos memberi balik RM1.30 manfaat.");
     addParagraph(`Nota andaian ringkas: Hasil madu per koloni ${fmtNumber(params.honeyYieldPerColony)} kg/tahun, harga madu RM ${fmtNumber(params.honeyPrice)} /kg, tempoh analisis ${params.T} tahun, kadar diskaun ${fmtNumber(params.discountRate * 100,0)}%, kontinjensi ${fmtNumber(params.contingencyRate * 100,0)}%, eskalasi kos ${fmtNumber(params.costEscalation * 100,1)}%, eskalasi harga ${fmtNumber(params.priceEscalation * 100,1)}%, mortaliti ${fmtNumber(params.mortalityRate * 100,1)}%, kos pembungkusan ${params.enablePackaging ? 'aktif' : 'tidak aktif'}. Kos pembangunan lain-lain Tahun 0: RM ${fmtNumber(params.devCostOther0)}. Bahan habis pakai lain-lain setahun: RM ${fmtNumber(params.otherOpexAnnual)}.`);
 
     pdf.addPage();
     y = 16;
     addSectionTitle("Jadual Aliran Tunai (Cashflow)");
-    addParagraph("Jadual ini menunjukkan hasil, kos, aliran tunai bersih (CF), CF terkumpul, serta nilai kini (PV CF) bagi setiap tahun. CF positif bermaksud lebihan tunai selepas kos. CF terkumpul membantu mengenal pasti bila modal kembali.");
+    addParagraph("Jadual ini menunjukkan hasil, kos, aliran tunai bersih, aliran tunai terkumpul, serta nilai kini (PV CF) bagi setiap tahun. Aliran Tunai Bersih = Hasil − Kos. Jika negatif, bermaksud belanja lebih daripada hasil pada tahun tersebut.");
     const cfRows = [];
     let cum = 0;
     sc.cashflows.forEach((cf, t) => {
@@ -1814,7 +1870,7 @@
         fmtNumber(pv)
       ]);
     });
-    addTable(["Tahun","Hasil (RM)","Kos (RM)","CF (RM)","CF Terkumpul (RM)","PV CF (RM)"], cfRows, [14, 28, 28, 24, 30, 28]);
+    addTable(["Tahun","Hasil (RM)","Kos (RM)","Aliran Tunai Bersih (RM)","CF Terkumpul (RM)","PV CF (RM)"], cfRows, [14, 28, 28, 40, 30, 22]);
 
     addChartPage(
       "Graf Cashflow Tahunan",
