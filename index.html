@@ -136,10 +136,6 @@
     .mode-row { display: flex; gap: 10px; flex-wrap: wrap; }
     .inline { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .inline input[type="radio"] { width: auto; }
-    .section-map { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; background: #0f0f0f; border: 1px solid #2b2418; padding: 6px 8px; border-radius: 8px; font-size: 12px; }
-    .section-map a { color: var(--amber); text-decoration: none; padding: 2px 6px; border-radius: 999px; border: 1px solid #333; background: #1a1a1a; }
-    .section-map a:hover { background: #222; }
-    .map-sep { color: #777; }
     details { background: #121212; border: 1px solid #222; border-radius: 6px; padding: 0; margin-top: 8px; }
     summary { cursor: pointer; color: var(--gold); font-weight: bold; padding: 8px 10px; list-style: none; }
     summary::-webkit-details-marker { display: none; }
@@ -160,6 +156,10 @@
     .meta { font-size: 11px; color: var(--muted); text-align: right; }
     .hint-example { font-size: 0.9em; opacity: 0.85; margin-top: 6px; color: #c9c9c9; }
     .helper-box { padding: 10px; border-radius: 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); margin-top: 8px; }
+    .note.small { font-size: 11px; color: #d0d0d0; }
+    .req-badge { background: #ffeb3b; color: #2b2b2b; font-size: 10px; font-weight: bold; padding: 1px 6px; border-radius: 999px; margin-left: 6px; border: 1px solid #ffd600; letter-spacing: 0.4px; }
+    .req-input { background: #fff7b0; border: 1px solid #ffd400; box-shadow: 0 0 6px rgba(255, 214, 0, 0.45); color: #1e1e1e; }
+    .req-input::placeholder { color: #6b5a00; }
     @media (max-width: 600px) { button { width: 100%; } .inline { flex-direction: column; align-items: flex-start; } }
   </style>
 </head>
@@ -183,13 +183,13 @@
         <summary id="sectionA">A. Maklumat Ladang</summary>
         <div class="section-body">
           <label>Nama penternak:
-            <input id="farmerName" type="text" placeholder="Nama penternak">
+            <input id="farmerName" type="text">
           </label>
           <label>Nama Kampung (untuk laporan):
-            <input id="villageName" type="text" placeholder="Nama kampung">
+            <input id="villageName" type="text">
           </label>
           <label>No. telefon:
-            <input id="phoneNumber" type="text" placeholder="No. telefon">
+            <input id="phoneNumber" type="text">
           </label>
         </div>
       </details>
@@ -202,25 +202,25 @@
             <label class="pill"><input type="radio" name="mode" value="detailed" id="modeDetailed" checked> Mod Terperinci (Profesional)</label>
           </div>
           <div id="simpleMode" style="display:none;">
-            <label>Bilangan koloni (isi terus):
-              <input id="coloniesDirect" type="number" min="0" step="1" value="30">
+            <label>Bilangan koloni (isi terus): <span class="req-badge">WAJIB</span>
+              <input id="coloniesDirect" class="req-input" type="number" min="0" step="1" value="30">
             </label>
             <div class="error-text" id="err-coloniesDirect"></div>
           </div>
           <div id="detailedMode">
-            <label>Keluasan (ekar):
-              <input id="areaAcre" type="number" min="0" step="0.1" value="1">
+            <label>Keluasan (ekar): <span class="req-badge">WAJIB</span>
+              <input id="areaAcre" class="req-input" type="number" min="0" step="0.1" value="1">
             </label>
             <div class="error-text" id="err-areaAcre"></div>
-            <label>Kepadatan koloni (koloni/ekar):
-              <input id="density" type="number" min="0" step="1" value="30">
+            <label>Kepadatan koloni (koloni/ekar): <span class="req-badge">WAJIB</span>
+              <input id="density" class="req-input" type="number" min="0" step="1" value="30">
             </label>
             <div class="error-text" id="err-density"></div>
             <div class="note" id="colonyEstimate">Anggaran bilangan koloni: 30</div>
           </div>
 
-          <label>Hasil madu per koloni setahun (kg/koloni/tahun):
-            <input id="yieldPerColony" type="number" min="0" step="0.1" value="2.5">
+          <label>Hasil madu per koloni setahun (kg/koloni/tahun): <span class="req-badge">WAJIB</span>
+            <input id="yieldPerColony" class="req-input" type="number" min="0" step="0.1" value="2.5">
             <small class="hint">Contoh anggaran: 1.5 – 3.5 kg/koloni/tahun bergantung penjagaan & cuaca.</small>
           </label>
           <div class="error-text" id="err-yieldPerColony"></div>
@@ -234,8 +234,8 @@
             </div>
           </div>
 
-          <label>Harga jual madu kelulut (RM/kg):
-            <input id="price" type="number" min="0" step="1" value="200">
+          <label>Harga jual madu kelulut (RM/kg): <span class="req-badge">WAJIB</span>
+            <input id="price" class="req-input" type="number" min="0" step="1" value="200">
           </label>
           <div class="error-text" id="err-price"></div>
           <label>Hasil propolis (titis) per koloni setahun (RM/koloni/tahun):
@@ -258,9 +258,11 @@
         <div class="section-body">
           <label>Kadar koloni mati/rosak setahun (%):
             <input id="mortalityRatePercent" type="number" min="0" max="100" step="0.5" value="0">
+            <small class="hint">Anggaran peratus koloni yang mati atau rosak setahun. Jika 2 koloni rosak daripada 40, lebih kurang 5%.</small>
           </label>
           <label>Kos ganti koloni (RM/koloni mati):
             <input id="replacementColonyCost" type="number" min="0" step="50" value="1000">
+            <small class="hint">Kos beli atau bina koloni baharu apabila koloni rosak.</small>
           </label>
         </div>
       </details>
@@ -283,23 +285,6 @@
         </div>
       </details>
 
-      <details class="section" id="secMap">
-        <summary>Peta Ringkas Bahagian</summary>
-        <div class="section-body">
-          <nav class="section-map" aria-label="Peta Ringkas Bahagian">
-            <a href="#sectionA">A Ladang</a><span class="map-sep">|</span>
-            <a href="#sectionB">B Hasil</a><span class="map-sep">|</span>
-            <a href="#sectionB2">B2 Risiko</a><span class="map-sep">|</span>
-            <a href="#sectionC">C Kos Mula</a><span class="map-sep">|</span>
-            <a href="#sectionD">D Input</a><span class="map-sep">|</span>
-            <a href="#sectionE">E Upah</a><span class="map-sep">|</span>
-            <a href="#sectionF">F Pelbagai</a><span class="map-sep">|</span>
-            <a href="#sectionG">G Tetapan</a><span class="map-sep">|</span>
-            <a href="#sectionH">H Graf</a>
-          </nav>
-        </div>
-      </details>
-
       <div class="inline" style="margin-top:10px;">
         <button class="btn-secondary btn-inline btn-next" data-next-step="step2">Seterusnya (Langkah 2)</button>
       </div>
@@ -318,9 +303,10 @@
           <label>Pembinaan pagar (RM/ekar, sekali – tahun 0):
             <input id="fenceCostPerAcre" type="number" min="0" step="50" value="1000">
           </label>
-          <label>Pembinaan koloni kelulut (kotak + topping) (RM/koloni, tahun 0):
-            <input id="colonySetupCostPerColony" type="number" min="0" step="50" value="1000">
+          <label>Pembinaan koloni kelulut (kotak + topping) (RM/koloni, tahun 0): <span class="req-badge">WAJIB</span>
+            <input id="colonySetupCostPerColony" class="req-input" type="number" min="0" step="50" value="1000">
           </label>
+          <div class="error-text" id="err-colonySetupCostPerColony"></div>
           <label>Bilangan alat penyedut madu bermotor (unit – tahun 0):
             <input id="numExtractors" type="number" min="0" step="1" value="1">
           </label>
@@ -350,6 +336,7 @@
       <details class="section" id="secD">
         <summary id="sectionD">D. Kos Bahan Input</summary>
         <div class="section-body">
+          <small class="hint">Kos bahan input ialah barang yang habis guna untuk urus koloni & jualan (contoh gula/air gula, botol, label, plastik, sarung tangan, ubat/kawalan semut/perosak dan lain-lain).</small>
           <label>Kos kawalan serangga (RM/setahun):
             <input id="insectControlAnnual" type="number" min="0" step="10" value="100">
           </label>
@@ -440,6 +427,7 @@
           <div id="feedingFields" style="display:none;">
             <label>Kos feeding (RM/setahun):
               <input id="feedingCostAnnual" type="number" min="0" step="10" value="0">
+              <small class="hint">Feeding ialah makanan tambahan seperti gula/air gula/pati. Isi jumlah keseluruhan setahun.</small>
             </label>
           </div>
 
@@ -475,25 +463,30 @@
       <details class="section" id="secG">
         <summary id="sectionG">G. Parameter Analisis & Tindakan</summary>
         <div class="section-body">
-          <label>Kadar Diskaun (% setahun):
-            <input id="discountRate" type="number" min="0" step="0.1" value="3">
-            <small class="hint">Jika tidak pasti, boleh guna 3% – 8% bergantung kos modal.</small>
+          <div class="note small">Parameter analisis ialah tetapan kiraan kalkulator seperti tempoh, kadar diskaun dan anggaran kos/hasil tambahan.</div>
+          <label>Kadar Diskaun (% setahun): <span class="req-badge">WAJIB</span>
+            <input id="discountRate" class="req-input" type="number" min="0" step="0.1" value="3">
+            <small class="hint">Nilai duit berubah ikut masa. Jika rasa simpan duit/untung alternatif 3% setahun, isi 3%.</small>
           </label>
           <div class="error-text" id="err-discountRate"></div>
-          <label>Tempoh Analisis (tahun ekonomi projek):
-            <input id="duration" type="number" min="1" step="1" value="7">
+          <label>Tempoh Analisis (tahun ekonomi projek): <span class="req-badge">WAJIB</span>
+            <input id="duration" class="req-input" type="number" min="1" step="1" value="7">
+            <small class="hint">Berapa tahun anda mahu kira pulangan projek ini.</small>
           </label>
           <div class="error-text" id="err-duration"></div>
 
           <label>Kontinjensi (% atas kos tahunan):
             <input id="contingencyPercent" type="number" min="0" max="100" step="0.5" value="10">
+            <small class="hint">Kos tak dijangka (contoh koloni rosak, alat kecil, minyak tambahan). Julat biasa 5%–15%.</small>
           </label>
 
           <label>Kenaikan kos tahunan (inflasi kos) %:
             <input id="costEscalationPercent" type="number" min="0" step="0.1" value="0">
+            <small class="hint">Jika kos bahan/upah naik setiap tahun, isi anggaran peratus.</small>
           </label>
           <label>Kenaikan harga madu tahunan (inflasi harga) %:
             <input id="priceEscalationPercent" type="number" min="0" step="0.1" value="0">
+            <small class="hint">Jika harga madu dijangka naik setiap tahun, isi anggaran peratus.</small>
           </label>
 
           <div id="errorSummary" class="error-summary">Sila betulkan medan yang merah.</div>
@@ -907,6 +900,8 @@
   function validateInputs() {
     let valid = true;
     const mode = document.querySelector('input[name="mode"]:checked').value;
+    const requiredMandatory = new Set(['yieldPerColony', 'price', 'discountRate', 'duration', 'colonySetupCostPerColony']);
+    const requiredNonZero = new Set(['yieldPerColony', 'price', 'duration', 'colonySetupCostPerColony']);
     const required = [
       { id: 'yieldPerColony', min: 0 },
       { id: 'price', min: 0 },
@@ -915,16 +910,34 @@
       { id: 'mortalityRatePercent', min: 0, max: 100 },
       { id: 'contingencyPercent', min: 0, max: 100 },
       { id: 'devCostOther0', min: 0 },
-      { id: 'otherOpexAnnual', min: 0 }
+      { id: 'otherOpexAnnual', min: 0 },
+      { id: 'colonySetupCostPerColony', min: 0 }
     ];
     if (mode === 'detailed') {
       required.push({ id: 'areaAcre', min: 0 }, { id: 'density', min: 0 });
+      requiredMandatory.add('areaAcre');
+      requiredMandatory.add('density');
+      requiredNonZero.add('areaAcre');
+      requiredNonZero.add('density');
     } else {
       required.push({ id: 'coloniesDirect', min: 0 });
+      requiredMandatory.add('coloniesDirect');
+      requiredNonZero.add('coloniesDirect');
     }
 
     required.forEach(f => {
-      const val = parseFloat(document.getElementById(f.id).value);
+      const rawVal = document.getElementById(f.id).value.trim();
+      if (requiredMandatory.has(f.id) && rawVal === '') {
+        setError(f.id, 'Ruangan ini wajib diisi');
+        valid = false;
+        return;
+      }
+      const val = parseFloat(rawVal);
+      if (requiredNonZero.has(f.id) && (!isFinite(val) || val === 0)) {
+        setError(f.id, 'Ruangan ini wajib diisi');
+        valid = false;
+        return;
+      }
       if (isNaN(val) || val < f.min || (f.max !== undefined && val > f.max)) {
         const limitText = f.max !== undefined ? `${f.min} - ${f.max}` : `>= ${f.min}`;
         setError(f.id, 'Isi nombor sah (' + limitText + ').');
@@ -1483,7 +1496,9 @@
     const roiYear1 = baseScenario.totalCosts[1] > 0 ? (baseScenario.cashflows[1] / baseScenario.totalCosts[1]) * 100 : null;
 
     const paybackText = baseScenario.paybackYear ? "Tahun ke-" + baseScenario.paybackYear : "Tidak pulang modal dalam tempoh analisis";
-    const irrText = baseScenario.irr !== null ? `${fmtNumber(baseScenario.irr)} %` : 'IRR tidak dapat dikira (aliran tunai tiada perubahan tanda)';
+    const irrText = baseScenario.irr !== null
+      ? `Macam kadar untung projek; kalau IRR > kadar diskaun, projek lebih menarik. (Anggaran IRR: ${fmtNumber(baseScenario.irr)}%)`
+      : 'Macam kadar untung projek; kalau IRR > kadar diskaun, projek lebih menarik. (IRR tidak dapat dikira kerana aliran tunai tiada perubahan tanda).';
 
     const otherName = params.otherProductName ? ` (${params.otherProductName})` : '';
     const year1Optional = computeYear1OptionalCosts(params);
@@ -1505,10 +1520,10 @@
       <h3>Analisis Lanjut / Profesional</h3>
       <table>
         <tr><th style="text-align:left;">Penunjuk</th><th>Nilai</th><th style="text-align:left;">Takrif Ringkas</th></tr>
-        <tr><td style="text-align:left;">NPV (Nilai Kini Bersih)</td><td>RM ${coloredFmt(baseScenario.npv)}</td><td style="text-align:left;">Lebihan nilai bersih selepas diskaun pada kadar ${fmtNumber(discountRate*100,0)}%.</td></tr>
+        <tr><td style="text-align:left;">NPV (Nilai Kini Bersih)</td><td>RM ${coloredFmt(baseScenario.npv)}</td><td style="text-align:left;">Lebihan untung selepas ambil kira nilai duit ikut masa; NPV &gt; 0 biasanya berbaloi.</td></tr>
         <tr><td style="text-align:left;">IRR (Kadar Pulangan Dalaman)</td><td>${baseScenario.irr !== null ? coloredFmt(baseScenario.irr) + ' %' : '-'}</td><td style="text-align:left;">${irrText}</td></tr>
-        <tr><td style="text-align:left;">BCR (Nisbah Faedah-Kos)</td><td>${baseScenario.bcr !== null ? baseScenario.bcr.toFixed(2) : '-'}</td><td style="text-align:left;">Jika &gt; 1, faedah melebihi kos.</td></tr>
-        <tr><td style="text-align:left;">ROI (Keseluruhan)</td><td>${roi !== null ? coloredFmt(roi) + ' %' : '-'}</td><td style="text-align:left;">Pulangan sepanjang projek.</td></tr>
+        <tr><td style="text-align:left;">BCR (Nisbah Faedah-Kos)</td><td>${baseScenario.bcr !== null ? baseScenario.bcr.toFixed(2) : '-'}</td><td style="text-align:left;">Setiap RM1 kos dapat berapa RM manfaat; &gt; 1 biasanya bagus.</td></tr>
+        <tr><td style="text-align:left;">ROI (Keseluruhan)</td><td>${roi !== null ? coloredFmt(roi) + ' %' : '-'}</td><td style="text-align:left;">Peratus untung berbanding jumlah kos projek.</td></tr>
         <tr><td style="text-align:left;">ROI Tahun 1</td><td>${roiYear1 !== null ? coloredFmt(roiYear1) + ' %' : '-'}</td><td style="text-align:left;">Pulangan pada tahun operasi pertama sahaja.</td></tr>
         <tr><td style="text-align:left;">Harga Pulang Modal Madu</td><td>${breakEvenPrice !== null ? 'RM ' + fmtNumber(breakEvenPrice) + ' /kg' : '-'}</td><td style="text-align:left;">Harga minimum untuk NPV ≈ 0 termasuk pendapatan sampingan.</td></tr>
         <tr><td style="text-align:left;">Tempoh Pulang Modal (Payback Period)</td><td>${paybackText}</td><td style="text-align:left;">Tahun aliran tunai terkumpul mula positif.</td></tr>
@@ -1771,13 +1786,14 @@
     y = 16;
     addSectionTitle("Ringkasan Metrik Utama");
     addParagraph(`NPV: RM ${fmtNumber(baseNPV)} | IRR: ${irrVal !== null ? fmtNumber(irrVal) + ' %' : '-'} | BCR: ${bcrVal !== null ? bcrVal.toFixed(2) : '-'} | ROI keseluruhan: ${roi !== null ? fmtNumber(roi) + ' %' : '-'}`);
-    addParagraph("Cara baca metrik:");
+    addParagraph("Cara baca metrik (bahasa mudah): Metrik ini membantu kita faham untung rugi dengan cara ringkas. NPV tunjuk lebihan untung selepas ambil kira nilai duit ikut masa; NPV lebih tinggi biasanya lebih baik. IRR pula macam kadar untung projek; kalau IRR lebih tinggi daripada kadar diskaun, projek selalunya lebih menarik.");
     addBullets([
-      "NPV > 0 = projek berbaloi pada kadar diskaun ini.",
+      "Contoh: Jika NPV = RM 5,000, maknanya ada lebihan untung kira-kira RM 5,000 selepas diskaun.",
       "IRR lebih tinggi daripada kadar diskaun = projek lebih menarik.",
-      "BCR > 1 = manfaat melebihi kos.",
-      "ROI menunjukkan pulangan berbanding kos keseluruhan projek."
+      "BCR > 1 = setiap RM1 kos dapat lebih RM1 manfaat.",
+      "ROI menunjukkan peratus untung berbanding kos keseluruhan projek."
     ]);
+    addParagraph("Contoh ringkas: Jika kos keseluruhan RM 10,000 dan untung bersih RM 2,000, ROI lebih kurang 20%. Jika BCR = 1.3, maknanya setiap RM1 kos memberi balik RM1.30 manfaat.");
     addParagraph(`Nota andaian ringkas: Hasil madu per koloni ${fmtNumber(params.honeyYieldPerColony)} kg/tahun, harga madu RM ${fmtNumber(params.honeyPrice)} /kg, tempoh analisis ${params.T} tahun, kadar diskaun ${fmtNumber(params.discountRate * 100,0)}%, kontinjensi ${fmtNumber(params.contingencyRate * 100,0)}%, eskalasi kos ${fmtNumber(params.costEscalation * 100,1)}%, eskalasi harga ${fmtNumber(params.priceEscalation * 100,1)}%, mortaliti ${fmtNumber(params.mortalityRate * 100,1)}%, kos pembungkusan ${params.enablePackaging ? 'aktif' : 'tidak aktif'}. Kos pembangunan lain-lain Tahun 0: RM ${fmtNumber(params.devCostOther0)}. Bahan habis pakai lain-lain setahun: RM ${fmtNumber(params.otherOpexAnnual)}.`);
 
     pdf.addPage();
