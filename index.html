@@ -141,6 +141,12 @@
     summary { cursor: pointer; color: var(--gold); font-weight: bold; padding: 8px 10px; list-style: none; }
     summary::-webkit-details-marker { display: none; }
     details > summary:focus { outline: 2px solid rgba(255, 202, 40, 0.6); outline-offset: 2px; }
+    .panel-collapsible { background: #121212; border: 1px solid rgba(255, 213, 79, 0.22); border-radius: 10px; margin-top: 10px; }
+    .panel-collapsible > summary { display: flex; align-items: center; justify-content: space-between; font-size: 14px; padding: 10px 12px; letter-spacing: 0.2px; }
+    .panel-collapsible > summary::after { content: "▸"; font-size: 14px; color: #ffe082; margin-left: 12px; }
+    .panel-collapsible[open] > summary::after { content: "▾"; }
+    .panel-collapsible > summary span { display: inline-flex; align-items: center; gap: 8px; }
+    .panel-body { padding: 10px 12px 12px; }
     .step { background: #0f0f0f; border: 1px solid #2b2418; border-radius: 10px; margin-top: 12px; }
     .step > summary { background: linear-gradient(90deg, rgba(255,202,40,0.18), rgba(18,18,18,0.9)); font-size: 16px; padding: 12px 14px; display: flex; align-items: center; gap: 10px; border-left: 6px solid transparent; }
     .step[data-step="1"] > summary { border-left-color: rgba(255, 193, 7, 0.9); }
@@ -164,8 +170,9 @@
     .metric-desc { font-size: 12px; line-height: 1.4; color: #e6e6e6; }
     .metric-desc strong { color: #ffecb3; }
     .info-panels { margin-top: 10px; display: grid; gap: 10px; }
-    .info-panel { background: #121212; border: 1px solid rgba(255, 213, 79, 0.2); }
+    .info-panel { background: #121212; border: 1px solid rgba(255, 213, 79, 0.2); border-radius: 10px; }
     .info-panel > summary { color: #ffe082; background: rgba(255, 213, 79, 0.08); }
+    .info-panel-title { color: #ffe082; background: rgba(255, 213, 79, 0.08); font-weight: bold; padding: 8px 10px; border-bottom: 1px solid rgba(255, 213, 79, 0.16); border-top-left-radius: 10px; border-top-right-radius: 10px; }
     .info-panel-body { padding: 10px 12px 12px; }
     .hl-val { background: #ffe95c; color: #111; font-weight: 800; padding: 0 6px; border-radius: 6px; box-shadow: 0 0 0 1px rgba(255, 214, 0, 0.6), 0 0 12px rgba(255, 214, 0, 0.45); }
     .hl-name { background: #7df2ff; color: #111; font-weight: 800; padding: 0 6px; border-radius: 6px; box-shadow: 0 0 0 1px rgba(77, 182, 255, 0.55), 0 0 12px rgba(77, 182, 255, 0.4); }
@@ -635,9 +642,78 @@
   <details class="step" id="step3" data-step="3">
     <summary><span class="step-badge step-3">Langkah 3</span> Analisis & Keputusan</summary>
     <div class="step-card">
-      <details class="section" id="secG">
-        <summary id="sectionG"><span class="section-badge section-g">G</span> Bahagian G: Tetapan Kiraan & Tindakan</summary>
-        <div class="section-body">
+      <details class="panel-collapsible" id="secResults">
+        <summary><span>Keputusan & Ringkasan</span></summary>
+        <div class="panel-body">
+          <div id="results" class="summary"></div>
+        </div>
+      </details>
+
+      <div class="info-panels" id="infoPanels">
+        <div class="info-panel" id="infoMonthly">
+          <div class="info-panel-title">Ringkasan Pantas: Anggaran Bulanan (Tahun 1)</div>
+          <div class="info-panel-body">
+            <div class="three-cards">
+              <div class="mini-card"><h4>Anggaran Untung Bersih Sebulan (RM)</h4><div class="badge" id="monthlyNetValue">-</div></div>
+              <div class="mini-card"><h4>Anggaran Jualan Sebulan (RM)</h4><div class="badge" id="monthlyRevenueValue">-</div></div>
+              <div class="mini-card"><h4>Anggaran Kos Operasi Sebulan (RM)</h4><div class="badge" id="monthlyCostValue">-</div></div>
+            </div>
+            <p class="note small" id="monthlyMessage"></p>
+            <p class="note small">Ini anggaran duit lebihan yang tinggal selepas tolak kos. Kiraan ini ambil angka Tahun 1 dan bahagi 12. Kalau hasil ikut musim, angka ini sebagai panduan.</p>
+            <p class="note small">Anggaran jualan dan belanja bulanan memudahkan rancangan duit masuk-keluar.</p>
+          </div>
+        </div>
+
+        <div class="info-panel" id="infoBottles" style="display:none;">
+          <div class="info-panel-title">Anggaran Botol (Jika Jual Dalam Botol)</div>
+          <div class="info-panel-body">
+            <div class="three-cards">
+              <div class="mini-card"><h4>Anggaran Botol Sebulan</h4><div class="badge" id="monthlyBottleValue">-</div></div>
+              <div class="mini-card"><h4>Anggaran Botol Setahun</h4><div class="badge" id="annualBottleValue">-</div></div>
+            </div>
+            <p class="note small">Ini anggaran bilangan botol yang boleh diisi dan dijual berdasarkan jumlah madu dianggarkan.</p>
+            <p class="note small">Tip: Isi kos botol dan label supaya untung lebih tepat.</p>
+          </div>
+        </div>
+
+        <details class="panel-collapsible info-panel" id="infoAssumptions">
+          <summary><span>Ringkasan Andaian (berdasarkan input anda)</span></summary>
+          <div class="panel-body info-panel-body">
+            <p class="note small" id="assumptionIdentity">Nama penternak: - | Nama kampung: -</p>
+            <p class="note small" id="assumptionText"></p>
+          </div>
+        </details>
+
+        <details class="panel-collapsible info-panel" id="infoGuide">
+          <summary><span>Cara Baca Keputusan (mudah)</span></summary>
+          <div class="panel-body info-panel-body">
+            <div class="helper-box">
+              <p class="note small"><strong>Nilai Kini Bersih (NPV)</strong><br>Apa maksud: Lebihan nilai untung selepas ambil kira nilai duit ikut masa (kadar diskaun).<br>Cara baca: Jika NPV &gt; 0, biasanya projek berbaloi pada tetapan semasa.<br>Contoh: NPV RM5,000 bermaksud selepas kira nilai duit ikut masa, projek masih ada lebihan lebih kurang RM5,000.</p>
+              <p class="note small"><strong>Kadar Pulangan Dalaman (IRR)</strong><br>Apa maksud: Anggaran kadar untung projek.<br>Cara baca: Jika IRR lebih tinggi daripada kadar diskaun, projek biasanya lebih menarik.<br>Contoh: IRR 18% lebih tinggi daripada diskaun 3%.</p>
+              <p class="note small"><strong>Nisbah Faedah-Kos (BCR)</strong><br>Apa maksud: Setiap RM1 kos memberi berapa RM manfaat.<br>Cara baca: Jika BCR &gt; 1, manfaat melebihi kos.<br>Contoh: BCR 1.30 = RM1 kos → RM1.30 manfaat.</p>
+              <p class="note small"><strong>Pulangan atas Kos (ROI)</strong><br>Apa maksud: Peratus untung berbanding jumlah kos.<br>Cara baca: Lebih tinggi, lebih baik (tetapi masih bergantung risiko).<br>Contoh: ROI 50% bermaksud untung kira-kira separuh daripada jumlah kos (mengikut tempoh analisis).</p>
+              <p class="note small"><strong>Tahun pulang modal</strong><br>Apa maksud: Tahun bila modal permulaan kembali apabila Aliran Tunai Terkumpul mula positif.<br>Contoh: Jika pulang modal Tahun 4, biasanya sekitar tahun ke-4 modal awal sudah kembali.</p>
+              <p class="note small"><strong>Harga madu minimum tak rugi</strong><br>Apa maksud: Harga madu paling rendah supaya projek tidak rugi dengan hasil &amp; kos semasa.<br>Contoh: Jika minimum RM120/kg dan harga pasaran RM150/kg, projek biasanya lebih selamat.</p>
+            </div>
+          </div>
+        </details>
+
+        <details class="panel-collapsible info-panel" id="infoTarget">
+          <summary><span>Sasaran Pendapatan (Pilihan)</span></summary>
+          <div class="panel-body info-panel-body">
+            <p class="note small">Masukkan sasaran pendapatan bersih sebulan (contoh RM500, RM1000). Kalkulator akan anggarkan berapa koloni diperlukan berdasarkan hasil dan kos yang anda isi.</p>
+            <p class="note small">Nota: Ini anggaran kasar. Jika kos atau hasil berubah, bilangan koloni yang diperlukan juga akan berubah.</p>
+            <label for="targetMonthlyNet">Sasaran pendapatan bersih (RM/bulan):</label>
+            <input id="targetMonthlyNet" type="number" min="0" step="50" value="0">
+            <button class="btn-secondary btn-inline" id="btnTargetMonthly" type="button">Anggar bilangan koloni</button>
+            <div class="note small" id="targetMonthlyResult"></div>
+          </div>
+        </details>
+      </div>
+
+      <details class="panel-collapsible" id="secG">
+        <summary id="sectionG"><span><span class="section-badge section-g">G</span> Bahagian G: Tetapan Kiraan & Tindakan</span></summary>
+        <div class="panel-body">
           <div class="note small">Tetapan kiraan ialah perkara yang mengawal analisis seperti tempoh, kadar diskaun dan anggaran kos/hasil tambahan.</div>
           <label>Kadar Diskaun (% setahun): <span class="req-badge">WAJIB</span>
             <input id="discountRate" class="req-input" type="number" min="0" step="0.1" value="3">
@@ -681,78 +757,9 @@
         </div>
       </details>
 
-      <div class="info-panels" id="infoPanels">
-        <details class="info-panel" id="infoMonthly">
-          <summary>Ringkasan Pantas: Anggaran Bulanan (Tahun 1)</summary>
-          <div class="info-panel-body">
-            <div class="three-cards">
-              <div class="mini-card"><h4>Anggaran Untung Bersih Sebulan (RM)</h4><div class="badge" id="monthlyNetValue">-</div></div>
-              <div class="mini-card"><h4>Anggaran Jualan Sebulan (RM)</h4><div class="badge" id="monthlyRevenueValue">-</div></div>
-              <div class="mini-card"><h4>Anggaran Kos Operasi Sebulan (RM)</h4><div class="badge" id="monthlyCostValue">-</div></div>
-            </div>
-            <p class="note small" id="monthlyMessage"></p>
-            <p class="note small">Ini anggaran duit lebihan yang tinggal selepas tolak kos. Kiraan ini ambil angka Tahun 1 dan bahagi 12. Kalau hasil ikut musim, angka ini sebagai panduan.</p>
-            <p class="note small">Anggaran jualan dan belanja bulanan memudahkan rancangan duit masuk-keluar.</p>
-          </div>
-        </details>
-
-        <details class="info-panel" id="infoBottles" style="display:none;">
-          <summary>Anggaran Botol (Jika Jual Dalam Botol)</summary>
-          <div class="info-panel-body">
-            <div class="three-cards">
-              <div class="mini-card"><h4>Anggaran Botol Sebulan</h4><div class="badge" id="monthlyBottleValue">-</div></div>
-              <div class="mini-card"><h4>Anggaran Botol Setahun</h4><div class="badge" id="annualBottleValue">-</div></div>
-            </div>
-            <p class="note small">Ini anggaran bilangan botol yang boleh diisi dan dijual berdasarkan jumlah madu dianggarkan.</p>
-            <p class="note small">Tip: Isi kos botol dan label supaya untung lebih tepat.</p>
-          </div>
-        </details>
-
-        <details class="info-panel" id="infoAssumptions">
-          <summary>Ringkasan Andaian (berdasarkan input anda)</summary>
-          <div class="info-panel-body">
-            <p class="note small" id="assumptionIdentity">Nama penternak: - | Nama kampung: -</p>
-            <p class="note small" id="assumptionText"></p>
-          </div>
-        </details>
-
-        <details class="info-panel" id="infoGuide">
-          <summary>Cara Baca Keputusan (mudah)</summary>
-          <div class="info-panel-body">
-            <div class="helper-box">
-              <p class="note small"><strong>Nilai Kini Bersih (NPV)</strong><br>Apa maksud: Lebihan nilai untung selepas ambil kira nilai duit ikut masa (kadar diskaun).<br>Cara baca: Jika NPV &gt; 0, biasanya projek berbaloi pada tetapan semasa.<br>Contoh: NPV RM5,000 bermaksud selepas kira nilai duit ikut masa, projek masih ada lebihan lebih kurang RM5,000.</p>
-              <p class="note small"><strong>Kadar Pulangan Dalaman (IRR)</strong><br>Apa maksud: Anggaran kadar untung projek.<br>Cara baca: Jika IRR lebih tinggi daripada kadar diskaun, projek biasanya lebih menarik.<br>Contoh: IRR 18% lebih tinggi daripada diskaun 3%.</p>
-              <p class="note small"><strong>Nisbah Faedah-Kos (BCR)</strong><br>Apa maksud: Setiap RM1 kos memberi berapa RM manfaat.<br>Cara baca: Jika BCR &gt; 1, manfaat melebihi kos.<br>Contoh: BCR 1.30 = RM1 kos → RM1.30 manfaat.</p>
-              <p class="note small"><strong>Pulangan atas Kos (ROI)</strong><br>Apa maksud: Peratus untung berbanding jumlah kos.<br>Cara baca: Lebih tinggi, lebih baik (tetapi masih bergantung risiko).<br>Contoh: ROI 50% bermaksud untung kira-kira separuh daripada jumlah kos (mengikut tempoh analisis).</p>
-              <p class="note small"><strong>Tahun pulang modal</strong><br>Apa maksud: Tahun bila modal permulaan kembali apabila Aliran Tunai Terkumpul mula positif.<br>Contoh: Jika pulang modal Tahun 4, biasanya sekitar tahun ke-4 modal awal sudah kembali.</p>
-              <p class="note small"><strong>Harga madu minimum tak rugi</strong><br>Apa maksud: Harga madu paling rendah supaya projek tidak rugi dengan hasil &amp; kos semasa.<br>Contoh: Jika minimum RM120/kg dan harga pasaran RM150/kg, projek biasanya lebih selamat.</p>
-            </div>
-          </div>
-        </details>
-
-        <details class="info-panel" id="infoTarget">
-          <summary>Sasaran Pendapatan (Pilihan)</summary>
-          <div class="info-panel-body">
-            <p class="note small">Masukkan sasaran pendapatan bersih sebulan (contoh RM500, RM1000). Kalkulator akan anggarkan berapa koloni diperlukan berdasarkan hasil dan kos yang anda isi.</p>
-            <p class="note small">Nota: Ini anggaran kasar. Jika kos atau hasil berubah, bilangan koloni yang diperlukan juga akan berubah.</p>
-            <label for="targetMonthlyNet">Sasaran pendapatan bersih (RM/bulan):</label>
-            <input id="targetMonthlyNet" type="number" min="0" step="50" value="0">
-            <button class="btn-secondary btn-inline" id="btnTargetMonthly" type="button">Anggar bilangan koloni</button>
-            <div class="note small" id="targetMonthlyResult"></div>
-          </div>
-        </details>
-      </div>
-
-      <details class="section" id="secResults">
-        <summary>Keputusan & Ringkasan</summary>
-        <div class="section-body">
-          <div id="results" class="summary"></div>
-        </div>
-      </details>
-
-      <details class="section" id="secH">
-        <summary id="sectionH"><span class="section-badge section-h">H</span> Bahagian H: Graf Visual</summary>
-        <div class="section-body">
+      <details class="panel-collapsible" id="secH">
+        <summary id="sectionH"><span><span class="section-badge section-h">H</span> Bahagian H: Graf Visual</span></summary>
+        <div class="panel-body">
           <p class="note">Graf membantu melihat aliran tunai, bila projek pulang modal dan kesan perubahan harga madu.</p>
           <canvas id="cfChart" height="180"></canvas>
           <canvas id="cumCfChart" height="180"></canvas>
@@ -1234,7 +1241,7 @@
     if (!invalidEl) return false;
     const step = invalidEl.closest('.step');
     if (step) step.open = true;
-    const section = invalidEl.closest('details.section');
+    const section = invalidEl.closest('details.section, details.panel-collapsible');
     if (section) section.open = true;
     invalidEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
     if (typeof invalidEl.focus === 'function') {
@@ -1767,7 +1774,7 @@
 
   function runAnalysis() {
     if (!validateInputs()) {
-      setStatusMessage('Sila isi ruangan WAJIB dahulu.');
+      setStatusMessage('Sila lengkapkan ruangan WAJIB dahulu sebelum kira.');
       focusFirstInvalidInput();
       return;
     }
@@ -2026,10 +2033,9 @@
     const resultsSection = document.getElementById('secResults');
     if (step3) step3.open = true;
     if (resultsSection) resultsSection.open = true;
-    const infoMonthly = document.getElementById('infoMonthly');
-    if (infoMonthly) infoMonthly.open = true;
 
-    resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const scrollTarget = resultsSection || resultsDiv;
+    if (scrollTarget) scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
     const now = new Date();
     const dateStr = now.toLocaleDateString('ms-MY');
