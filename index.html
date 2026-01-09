@@ -162,6 +162,13 @@
     .note.small { font-size: 11px; color: #d0d0d0; }
     .metric-desc { font-size: 12px; line-height: 1.4; color: #e6e6e6; }
     .metric-desc strong { color: #ffecb3; }
+    .info-panels { margin-top: 10px; display: grid; gap: 10px; }
+    .info-panel { background: #121212; border: 1px solid rgba(255, 213, 79, 0.2); }
+    .info-panel > summary { color: #ffe082; background: rgba(255, 213, 79, 0.08); }
+    .info-panel-body { padding: 10px 12px 12px; }
+    .hl-val { background: #ffe95c; color: #111; font-weight: 800; padding: 0 6px; border-radius: 6px; }
+    .hl-name { background: #7df2ff; color: #111; font-weight: 800; padding: 0 6px; border-radius: 6px; }
+    .info-strong { color: #ffe95c; font-weight: 800; }
     .step-badge, .section-badge {
       display: inline-flex;
       align-items: center;
@@ -273,7 +280,7 @@
         <div class="guide-icon">📄</div>
         <h4>Semak Keputusan & PDF</h4>
         <ul>
-          <li>Untung Tahun 1, Payback, Break-even</li>
+          <li>Untung Tahun 1, tahun pulang modal, harga madu minimum tak rugi</li>
           <li>NPV/IRR/BCR + jadual & graf</li>
           <li>Muat turun PDF ringkas/profesional</li>
         </ul>
@@ -529,11 +536,11 @@
             </label>
           </div>
 
-          <label class="inline"><input type="checkbox" id="enableFeeding"> Aktifkan kos feeding / makanan tambahan</label>
+          <label class="inline"><input type="checkbox" id="enableFeeding"> Aktifkan kos makanan tambahan/umpan</label>
           <div id="feedingFields" style="display:none;">
-            <label>Kos feeding (RM/setahun):
+            <label>Kos makanan tambahan/umpan (RM/setahun):
               <input id="feedingCostAnnual" type="number" min="0" step="10" value="0">
-              <small class="hint">Feeding ialah makanan tambahan seperti gula/air gula/pati. Isi jumlah keseluruhan setahun.</small>
+              <small class="hint">Makanan tambahan/umpan ialah gula/air gula/pati. Isi jumlah keseluruhan setahun.</small>
             </label>
           </div>
 
@@ -547,7 +554,7 @@
       </details>
 
       <details class="section" id="secPreview">
-        <summary>Preview cepat (anggaran Tahun 1)</summary>
+        <summary>Pratonton cepat (anggaran Tahun 1)</summary>
         <div class="section-body">
           <div class="three-cards">
             <div class="mini-card"><h4>Anggaran madu Tahun 1</h4><div class="badge" id="previewHoney">-</div><small class="note">Termasuk faktor hasil Tahun 1 & mortaliti Tahun 1.</small></div>
@@ -567,9 +574,9 @@
     <summary><span class="step-badge step-3">Langkah 3</span> Analisis & Keputusan</summary>
     <div class="step-card">
       <details class="section" id="secG">
-        <summary id="sectionG"><span class="section-badge section-g">G</span> Bahagian G: Parameter Analisis & Tindakan</summary>
+        <summary id="sectionG"><span class="section-badge section-g">G</span> Bahagian G: Tetapan Kiraan & Tindakan</summary>
         <div class="section-body">
-          <div class="note small">Parameter analisis ialah tetapan kiraan kalkulator seperti tempoh, kadar diskaun dan anggaran kos/hasil tambahan.</div>
+          <div class="note small">Tetapan kiraan ialah perkara yang mengawal analisis seperti tempoh, kadar diskaun dan anggaran kos/hasil tambahan.</div>
           <label>Kadar Diskaun (% setahun): <span class="req-badge">WAJIB</span>
             <input id="discountRate" class="req-input" type="number" min="0" step="0.1" value="3">
             <small class="hint">Nilai duit berubah ikut masa. Jika rasa simpan duit/untung alternatif 3% setahun, isi 3%.</small>
@@ -599,8 +606,8 @@
 
           <div class="inline" style="margin-top:8px; gap:8px; flex-wrap: wrap;">
             <button class="btn-primary btn-inline" id="btnRun">Kira Analisis</button>
-            <button class="btn-secondary btn-inline" id="btnReset">Reset / Kosongkan</button>
-            <button class="btn-ghost btn-inline" id="btnDemo">Isi Contoh (Demo)</button>
+            <button class="btn-secondary btn-inline" id="btnReset">Tetapkan Semula / Kosongkan</button>
+            <button class="btn-ghost btn-inline" id="btnDemo">Isi Contoh</button>
             <button class="btn-ghost btn-inline" id="btnSave">Simpan</button>
             <button class="btn-secondary btn-inline" id="btnClearSave">Padam Simpanan</button>
           </div>
@@ -608,6 +615,68 @@
           <p class="note">Auto-simpan akan berlaku secara tertunda (beberapa saat) setiap kali anda ubah nilai. Simpanan disimpan di pelayar (localStorage).</p>
         </div>
       </details>
+
+      <div class="info-panels" id="infoPanels">
+        <details class="info-panel" id="infoMonthly">
+          <summary>Ringkasan Pantas: Anggaran Bulanan (Tahun 1)</summary>
+          <div class="info-panel-body">
+            <div class="three-cards">
+              <div class="mini-card"><h4>Anggaran Untung Bersih Sebulan (RM)</h4><div class="badge" id="monthlyNetValue">-</div></div>
+              <div class="mini-card"><h4>Anggaran Jualan Sebulan (RM)</h4><div class="badge" id="monthlyRevenueValue">-</div></div>
+              <div class="mini-card"><h4>Anggaran Kos Operasi Sebulan (RM)</h4><div class="badge" id="monthlyCostValue">-</div></div>
+            </div>
+            <p class="note small" id="monthlyMessage"></p>
+            <p class="note small">Ini anggaran duit lebihan yang tinggal selepas tolak kos. Kiraan ini ambil angka Tahun 1 dan bahagi 12. Kalau hasil ikut musim, angka ini sebagai panduan.</p>
+            <p class="note small">Anggaran jualan dan belanja bulanan memudahkan rancangan duit masuk-keluar.</p>
+          </div>
+        </details>
+
+        <details class="info-panel" id="infoBottles" style="display:none;">
+          <summary>Anggaran Botol (Jika Jual Dalam Botol)</summary>
+          <div class="info-panel-body">
+            <div class="three-cards">
+              <div class="mini-card"><h4>Anggaran Botol Sebulan</h4><div class="badge" id="monthlyBottleValue">-</div></div>
+              <div class="mini-card"><h4>Anggaran Botol Setahun</h4><div class="badge" id="annualBottleValue">-</div></div>
+            </div>
+            <p class="note small">Ini anggaran bilangan botol yang boleh diisi dan dijual berdasarkan jumlah madu dianggarkan.</p>
+            <p class="note small">Tip: Isi kos botol dan label supaya untung lebih tepat.</p>
+          </div>
+        </details>
+
+        <details class="info-panel" id="infoAssumptions">
+          <summary>Ringkasan Andaian (berdasarkan input anda)</summary>
+          <div class="info-panel-body">
+            <p class="note small" id="assumptionIdentity">Nama penternak: - | Nama kampung: -</p>
+            <p class="note small" id="assumptionText"></p>
+          </div>
+        </details>
+
+        <details class="info-panel" id="infoGuide">
+          <summary>Cara Baca Keputusan (mudah)</summary>
+          <div class="info-panel-body">
+            <div class="helper-box">
+              <p class="note small"><strong>Nilai Kini Bersih (NPV)</strong><br>Apa maksud: Lebihan nilai untung selepas ambil kira nilai duit ikut masa (kadar diskaun).<br>Cara baca: Jika NPV &gt; 0, biasanya projek berbaloi pada tetapan semasa.<br>Contoh: NPV RM5,000 bermaksud selepas kira nilai duit ikut masa, projek masih ada lebihan lebih kurang RM5,000.</p>
+              <p class="note small"><strong>Kadar Pulangan Dalaman (IRR)</strong><br>Apa maksud: Anggaran kadar untung projek.<br>Cara baca: Jika IRR lebih tinggi daripada kadar diskaun, projek biasanya lebih menarik.<br>Contoh: IRR 18% lebih tinggi daripada diskaun 3%.</p>
+              <p class="note small"><strong>Nisbah Faedah-Kos (BCR)</strong><br>Apa maksud: Setiap RM1 kos memberi berapa RM manfaat.<br>Cara baca: Jika BCR &gt; 1, manfaat melebihi kos.<br>Contoh: BCR 1.30 = RM1 kos → RM1.30 manfaat.</p>
+              <p class="note small"><strong>Pulangan atas Kos (ROI)</strong><br>Apa maksud: Peratus untung berbanding jumlah kos.<br>Cara baca: Lebih tinggi, lebih baik (tetapi masih bergantung risiko).<br>Contoh: ROI 50% bermaksud untung kira-kira separuh daripada jumlah kos (mengikut tempoh analisis).</p>
+              <p class="note small"><strong>Tahun pulang modal</strong><br>Apa maksud: Tahun bila modal permulaan kembali apabila Aliran Tunai Terkumpul mula positif.<br>Contoh: Jika pulang modal Tahun 4, biasanya sekitar tahun ke-4 modal awal sudah kembali.</p>
+              <p class="note small"><strong>Harga madu minimum tak rugi</strong><br>Apa maksud: Harga madu paling rendah supaya projek tidak rugi dengan hasil &amp; kos semasa.<br>Contoh: Jika minimum RM120/kg dan harga pasaran RM150/kg, projek biasanya lebih selamat.</p>
+            </div>
+          </div>
+        </details>
+
+        <details class="info-panel" id="infoTarget">
+          <summary>Sasaran Pendapatan (Pilihan)</summary>
+          <div class="info-panel-body">
+            <p class="note small">Masukkan sasaran pendapatan bersih sebulan (contoh RM500, RM1000). Kalkulator akan anggarkan berapa koloni diperlukan berdasarkan hasil dan kos yang anda isi.</p>
+            <p class="note small">Nota: Ini anggaran kasar. Jika kos atau hasil berubah, bilangan koloni yang diperlukan juga akan berubah.</p>
+            <label for="targetMonthlyNet">Sasaran pendapatan bersih (RM/bulan):</label>
+            <input id="targetMonthlyNet" type="number" min="0" step="50" value="0">
+            <button class="btn-secondary btn-inline" id="btnTargetMonthly" type="button">Anggar bilangan koloni</button>
+            <div class="note small" id="targetMonthlyResult"></div>
+          </div>
+        </details>
+      </div>
 
       <details class="section" id="secResults">
         <summary>Keputusan & Ringkasan</summary>
@@ -627,7 +696,7 @@
 
           <div style="margin-top:16px;" class="inline">
             <button class="btn-secondary" onclick="downloadPdfRingkasClean()">📄 Muat Turun PDF Ringkas</button>
-            <button class="btn-ghost" onclick="downloadPDF()">📄 PDF Screenshot (Opsyen)</button>
+            <button class="btn-ghost" onclick="downloadPDF()">📄 PDF Imej Skrin (Opsyen)</button>
             <button class="btn-secondary" onclick="downloadProfessionalPDF()">📄 Muat Turun PDF Profesional (Lengkap)</button>
             <button class="btn-ghost" onclick="downloadCashflowCSV()">⬇️ Muat Turun CSV – Aliran Tunai</button>
             <button class="btn-ghost" onclick="downloadSensitivityCSV()">⬇️ Muat Turun CSV – Sensitiviti</button>
@@ -638,7 +707,7 @@
   </details>
   <div class="disclaimer">
     <p class="note" style="font-size:10px; color:#bbbbbb; line-height:1.4;">
-      <strong>Penafian (Disclaimer) – Bahasa Melayu:</strong><br>
+      <strong>Penafian – Bahasa Melayu:</strong><br>
       Kalkulator ini disediakan untuk tujuan pembelajaran dan anggaran kasar sahaja.
       Nilai kos, hasil dan pulangan sebenar mungkin berbeza mengikut lokasi, keadaan ternakan,
       kemahiran pengurusan, harga pasaran serta faktor-faktor lain di luar kawalan pengeluar.
@@ -648,18 +717,8 @@
       kalkulator ini.
     </p>
 
-    <p class="note" style="font-size:10px; color:#bbbbbb; line-height:1.4;">
-      <strong>Disclaimer – English Version:</strong><br>
-      This calculator is intended for educational use and approximate estimation only.
-      Actual costs, yields, and financial returns may vary depending on location, farm conditions,
-      management practices, market prices, and external factors. Users are advised
-      to consult relevant officers or experts before making financial or investment decisions.
-      The creator of this calculator shall not be held responsible for any loss, damage,
-      or claims arising from its use.
-    </p>
-
     <p class="note" style="font-size:10px; color:#999999; text-align:center;">
-      &copy; 2025 Assis Kamu, Universiti Malaysia Sabah. All Rights Reserved.
+      &copy; 2025 Assis Kamu, Universiti Malaysia Sabah. Hak cipta terpelihara.
     </p>
   </div>
 </div>
@@ -760,7 +819,8 @@
     enableExpansion: false,
     expansionMode: "increment",
     expansionIncrement: 0,
-    expansionPercent: 0
+    expansionPercent: 0,
+    targetMonthlyNet: 0
   };
 
   function npv(rate, cashflows) {
@@ -1280,6 +1340,8 @@
     clearResults();
     clearErrors();
     setStatusMessage('');
+    const targetResult = document.getElementById('targetMonthlyResult');
+    if (targetResult) targetResult.textContent = '';
     updateQuickPreview();
   }
 
@@ -1294,7 +1356,7 @@
       propIncomePerCol: 40,
       soapIncomePerCol: 25,
       otherIncomePerCol: 10,
-      otherProductName: 'Bee bread',
+      otherProductName: 'Roti lebah',
       clearCostPerAcre: 1200,
       fenceCostPerAcre: 900,
       colonySetupCostPerColony: 1100,
@@ -1357,7 +1419,7 @@
     const items = [];
     if (params.enablePackaging) items.push('Botol/label/pembungkusan');
     if (params.enableTransport) items.push('Pengangkutan/pos');
-    if (params.enableFeeding) items.push('Feeding');
+    if (params.enableFeeding) items.push('Makanan tambahan/umpan');
     if (params.enableCompliance) items.push('Pensijilan/ujian/lesen');
     if (params.enableExpansion) items.push('Tambah koloni tahunan');
     return items.length ? items.join(', ') : 'Tiada kos tambahan dipilih';
@@ -1381,7 +1443,7 @@
     const details = [
       params.enablePackaging ? `Pembotolan/label: RM ${fmtNumber(packaging)}` : null,
       params.enableTransport ? `Pengangkutan/pos: RM ${fmtNumber(transport)}` : null,
-      params.enableFeeding ? `Feeding: RM ${fmtNumber(feeding)}` : null,
+      params.enableFeeding ? `Makanan tambahan/umpan: RM ${fmtNumber(feeding)}` : null,
       params.enableCompliance ? `Pensijilan/ujian: RM ${fmtNumber(compliance)}` : null,
       params.mortalityRate > 0 ? `Ganti koloni (risiko): RM ${fmtNumber(mortalityReplace)}` : null
     ].filter(Boolean).join(' | ');
@@ -1504,7 +1566,7 @@
     const npvCtx = document.getElementById('npvSensChart').getContext('2d');
     npvSensChartInstance = new Chart(npvCtx, {
       type: 'bar',
-      data: { labels: sensLabels, datasets: [{ label: 'NPV mengikut Senario Harga Madu (RM)', data: sensNPV, backgroundColor: npvBarColors, borderColor: npvBorderColors, borderWidth: 1 }] },
+      data: { labels: sensLabels, datasets: [{ label: 'NPV mengikut Tetapan Harga Madu (RM)', data: sensNPV, backgroundColor: npvBarColors, borderColor: npvBorderColors, borderWidth: 1 }] },
       options: { responsive: true, plugins: { legend: { display: true } }, scales: { y: { beginAtZero: true } } }
     });
   }
@@ -1542,7 +1604,7 @@
     const params = buildParams();
     const scenarioParams = { ...params, baseHoneyPrice: params.honeyPrice, baseLabourAnnual: params.labourAnnual, priceFactor: 1 };
     const sc = computeScenario(scenarioParams);
-    const rows = [["Tahun","KoloniEfektif","Hasil(RM)","Kos(RM)","AliranTunai(RM)","CF_Terkumpul(RM)","PV_CF(RM)"]];
+    const rows = [["Tahun","Koloni Efektif","Hasil (RM)","Kos (RM)","Aliran Tunai Bersih (RM)","Aliran Tunai Terkumpul (RM)","Nilai Kini Aliran Tunai (RM)"]];
     let cum = 0;
     sc.cashflows.forEach((cf, t) => {
       cum += cf;
@@ -1557,9 +1619,52 @@
     const scenarioParams = { ...params, baseHoneyPrice: params.honeyPrice, baseLabourAnnual: params.labourAnnual, priceFactor: 1 };
     const multiSens = buildMultiFactorSensitivity(params, scenarioParams);
     const baseNPV = computeScenario(scenarioParams).npv;
-    const rows = [["Faktor","LowNPV","BaseNPV","HighNPV","RangeNPV"]];
+    const rows = [["Faktor","NPV Rendah","NPV Asas","NPV Tinggi","Julat NPV"]];
     multiSens.chartData.forEach(r => rows.push([r.label, fmtNumber(r.low), fmtNumber(baseNPV), fmtNumber(r.high), fmtNumber(r.range)]));
     downloadCSV("sensitiviti_kelulut.csv", rows);
+  }
+
+  function buildScenarioParamsFromParams(params) {
+    return {
+      T: params.T,
+      colonies: params.colonies,
+      honeyYieldPerColony: params.honeyYieldPerColony,
+      baseHoneyPrice: params.honeyPrice,
+      propIncomePerColony: params.propIncomePerCol,
+      soapIncomePerColony: params.soapIncomePerCol,
+      otherIncomePerColony: params.otherIncomePerCol,
+      devCost0: params.devCost0,
+      baseInputAnnual: params.baseInputAnnual,
+      baseLabourAnnual: params.baseLabourAnnual,
+      baseMiscAnnual: params.baseMiscAnnual,
+      bottleSizeMl: params.bottleSizeMl,
+      bottleCost: params.bottleCost,
+      labelCost: params.labelCost,
+      packagingCost: params.packagingCost,
+      enablePackaging: params.enablePackaging,
+      enableTransport: params.enableTransport,
+      transportMode: params.transportMode,
+      transportCostPerKg: params.transportCostPerKg,
+      transportCostAnnual: params.transportCostAnnual,
+      enableFeeding: params.enableFeeding,
+      feedingCostAnnual: params.feedingCostAnnual,
+      enableCompliance: params.enableCompliance,
+      complianceCostAnnual: params.complianceCostAnnual,
+      mortalityRate: params.mortalityRate,
+      replacementColonyCost: params.replacementColonyCost,
+      costEscalation: params.costEscalation,
+      priceEscalation: params.priceEscalation,
+      discountRate: params.discountRate,
+      priceFactor: 1,
+      contingencyRate: params.contingencyRate,
+      enableYear1LowerYield: params.enableYear1LowerYield,
+      year1YieldFactor: params.year1YieldFactor,
+      enableExpansion: params.enableExpansion,
+      expansionMode: params.expansionMode,
+      expansionIncrement: params.expansionIncrement,
+      expansionPercent: params.expansionPercent,
+      colonySetupCostPerColony: params.colonySetupCostPerColony
+    };
   }
 
   function runAnalysis() {
@@ -1575,46 +1680,7 @@
       mortalityRate, replacementColonyCost, costEscalation, priceEscalation, contingencyRate
     } = params;
 
-    const scenarioParams = {
-      T,
-      colonies,
-      honeyYieldPerColony,
-      baseHoneyPrice: honeyPrice,
-      propIncomePerColony: propIncomePerCol,
-      soapIncomePerColony: soapIncomePerCol,
-      otherIncomePerColony: otherIncomePerCol,
-      devCost0,
-      baseInputAnnual,
-      baseLabourAnnual,
-      baseMiscAnnual,
-      bottleSizeMl: params.bottleSizeMl,
-      bottleCost: params.bottleCost,
-      labelCost: params.labelCost,
-      packagingCost: params.packagingCost,
-      enablePackaging: params.enablePackaging,
-      enableTransport: params.enableTransport,
-      transportMode: params.transportMode,
-      transportCostPerKg: params.transportCostPerKg,
-      transportCostAnnual: params.transportCostAnnual,
-      enableFeeding: params.enableFeeding,
-      feedingCostAnnual: params.feedingCostAnnual,
-      enableCompliance: params.enableCompliance,
-      complianceCostAnnual: params.complianceCostAnnual,
-      mortalityRate,
-      replacementColonyCost,
-      costEscalation,
-      priceEscalation,
-      discountRate,
-      priceFactor: 1,
-      contingencyRate,
-      enableYear1LowerYield: params.enableYear1LowerYield,
-      year1YieldFactor: params.year1YieldFactor,
-      enableExpansion: params.enableExpansion,
-      expansionMode: params.expansionMode,
-      expansionIncrement: params.expansionIncrement,
-      expansionPercent: params.expansionPercent,
-      colonySetupCostPerColony: params.colonySetupCostPerColony
-    };
+    const scenarioParams = buildScenarioParamsFromParams(params);
 
     const baseScenario = computeScenario(scenarioParams);
     const inputsIncomplete = inputsAreIncomplete(params);
@@ -1633,6 +1699,51 @@
     const soapRevenueAnnual = colonies * soapIncomePerCol;
     const otherRevenueAnnual = colonies * otherIncomePerCol;
     const totalAnnualRevenue = honeyRevenueAnnual + propRevenueAnnual + soapRevenueAnnual + otherRevenueAnnual;
+
+    const monthlyNetEl = document.getElementById('monthlyNetValue');
+    const monthlyRevenueEl = document.getElementById('monthlyRevenueValue');
+    const monthlyCostEl = document.getElementById('monthlyCostValue');
+    const monthlyMessageEl = document.getElementById('monthlyMessage');
+    if (inputsIncomplete) {
+      if (monthlyNetEl) monthlyNetEl.textContent = '-';
+      if (monthlyRevenueEl) monthlyRevenueEl.textContent = '-';
+      if (monthlyCostEl) monthlyCostEl.textContent = '-';
+      if (monthlyMessageEl) monthlyMessageEl.textContent = 'Sila lengkapkan maklumat hasil dan kos dahulu.';
+    } else {
+      const monthlyNet = numOrZero(baseScenario.cashflows[1]) / 12;
+      const monthlyRevenue = numOrZero(baseScenario.benefits[1]) / 12;
+      const monthlyCost = numOrZero(baseScenario.totalCosts[1]) / 12;
+      if (monthlyNetEl) monthlyNetEl.textContent = `RM ${fmtNumber(monthlyNet)}`;
+      if (monthlyRevenueEl) monthlyRevenueEl.textContent = `RM ${fmtNumber(monthlyRevenue)}`;
+      if (monthlyCostEl) monthlyCostEl.textContent = `RM ${fmtNumber(monthlyCost)}`;
+      if (monthlyMessageEl) monthlyMessageEl.textContent = '';
+    }
+
+    const bottlePanel = document.getElementById('infoBottles');
+    const monthlyBottleEl = document.getElementById('monthlyBottleValue');
+    const annualBottleEl = document.getElementById('annualBottleValue');
+    if (bottlePanel) bottlePanel.style.display = params.enablePackaging ? 'block' : 'none';
+    if (params.enablePackaging) {
+      const bottleSizeSafe = Math.max(1, params.bottleSizeMl || 1);
+      const bottlesAnnual = year1Optional.honeyKg > 0 ? Math.ceil((year1Optional.honeyKg * 1000) / bottleSizeSafe) : 0;
+      const bottlesMonthly = Math.ceil(bottlesAnnual / 12);
+      if (monthlyBottleEl) monthlyBottleEl.textContent = fmtNumber(bottlesMonthly, 0) + ' botol';
+      if (annualBottleEl) annualBottleEl.textContent = fmtNumber(bottlesAnnual, 0) + ' botol';
+    } else {
+      if (monthlyBottleEl) monthlyBottleEl.textContent = '-';
+      if (annualBottleEl) annualBottleEl.textContent = '-';
+    }
+
+    const assumptionIdentityEl = document.getElementById('assumptionIdentity');
+    const assumptionTextEl = document.getElementById('assumptionText');
+    const farmerDisplay = farmerName ? `<span class="hl-name">${farmerName}</span>` : '-';
+    const villageDisplay = villageName ? `<span class="hl-name">${villageName}</span>` : '-';
+    if (assumptionIdentityEl) {
+      assumptionIdentityEl.innerHTML = `Nama penternak: ${farmerDisplay} | Nama kampung: ${villageDisplay}`;
+    }
+    if (assumptionTextEl) {
+      assumptionTextEl.innerHTML = `Laporan ini menganggarkan projek anda berdasarkan bilangan koloni <span class="hl-val">${fmtNumber(colonies, 0)}</span>, hasil madu sekitar <span class="hl-val">${fmtNumber(honeyYieldPerColony)}</span> kg/koloni setahun, harga madu RM<span class="hl-val">${fmtNumber(honeyPrice)}</span>/kg, dan tempoh analisis <span class="hl-val">${fmtNumber(T, 0)}</span> tahun. Kos utama termasuk modal permulaan (Tahun 0), belanja operasi tahunan (upah, bahan habis pakai, kawalan serangga, sewa dan lain-lain), serta tetapan seperti kontinjensi dan kadar diskaun. Jika ada angka yang belum pasti, anda boleh ubah input dan tekan ‘Kira’ semula.`;
+    }
 
     const keyCards = `
       <div class="three-cards">
@@ -1676,14 +1787,14 @@
         </tr>
         <tr><td style="text-align:left;">ROI Tahun 1</td><td>${roiYear1 !== null ? coloredFmt(roiYear1) + ' %' : '-'}</td><td style="text-align:left;">Pulangan pada tahun operasi pertama sahaja.</td></tr>
         <tr>
-          <td style="text-align:left;">Harga Pulang Modal Madu</td>
+          <td style="text-align:left;">Harga madu minimum tak rugi</td>
           <td>${breakEvenPrice !== null ? 'RM ' + fmtNumber(breakEvenPrice) + ' /kg' : '-'}</td>
           <td style="text-align:left;">
-            <div class="metric-desc"><strong>Apa maksud:</strong> Harga madu minimum supaya projek tak rugi (NPV ≈ 0), selepas ambil kira hasil sampingan lain.<br><strong>Cara baca:</strong> Jika harga pasaran lebih tinggi daripada nilai ini, projek biasanya lebih selamat.<br><strong>Contoh:</strong> Break-even RM 120/kg, harga RM 150/kg lazimnya ada lebihan.</div>
+            <div class="metric-desc"><strong>Apa maksud:</strong> Harga madu minimum supaya projek tak rugi (NPV ≈ 0), selepas ambil kira hasil sampingan lain.<br><strong>Cara baca:</strong> Jika harga pasaran lebih tinggi daripada nilai ini, projek biasanya lebih selamat.<br><strong>Contoh:</strong> Harga minimum RM 120/kg, harga RM 150/kg lazimnya ada lebihan.</div>
           </td>
         </tr>
         <tr>
-          <td style="text-align:left;">Tempoh Pulang Modal (Payback Period)</td>
+          <td style="text-align:left;">Tahun pulang modal</td>
           <td>${paybackText}</td>
           <td style="text-align:left;">
             <div class="metric-desc"><strong>Apa maksud:</strong> Tahun bila modal awal kembali apabila aliran tunai terkumpul mula positif.<br><strong>Cara baca:</strong> Lagi awal, lagi cepat modal kembali dan risiko lebih rendah.<br><strong>Contoh:</strong> “Tahun ke-4” bermakna sekitar tahun 4 modal baru pulih.</div>
@@ -1769,7 +1880,7 @@
     resultsDiv.innerHTML += table;
 
     let sensTable = "<h3>Analisis Sensitiviti Harga Madu (NPV, IRR, BCR)</h3>";
-    sensTable += "<table><tr><th>Senario</th><th>Faktor Harga</th><th>Harga madu/kg (RM)</th><th>NPV (RM)</th><th>IRR (%)</th><th>BCR</th></tr>";
+    sensTable += "<table><tr><th>Tetapan</th><th>Faktor Harga</th><th>Harga madu/kg (RM)</th><th>NPV (RM)</th><th>IRR (%)</th><th>BCR</th></tr>";
     const factors = [0.8, 0.9, 1.0, 1.1, 1.2];
     const sensLabels = [];
     const sensNPV = [];
@@ -1793,6 +1904,8 @@
     const resultsSection = document.getElementById('secResults');
     if (step3) step3.open = true;
     if (resultsSection) resultsSection.open = true;
+    const infoMonthly = document.getElementById('infoMonthly');
+    if (infoMonthly) infoMonthly.open = true;
 
     resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
@@ -1802,6 +1915,35 @@
     document.getElementById('reportMeta').textContent = `Versi kalkulator: v2.1 | Tarikh laporan dijana: ${dateStr} ${timeStr}`;
     saveState();
     setStatusMessage('Analisis berjaya dijana pada ' + dateStr + ' ' + timeStr + '.');
+  }
+
+  function estimateTargetMonthlyColonies() {
+    const targetInput = document.getElementById('targetMonthlyNet');
+    const resultEl = document.getElementById('targetMonthlyResult');
+    if (!targetInput || !resultEl) return;
+    const targetMonthly = parseFloat(targetInput.value) || 0;
+    if (targetMonthly <= 0) {
+      resultEl.textContent = 'Sila masukkan sasaran pendapatan (RM/bulan).';
+      return;
+    }
+
+    const params = buildParams();
+    if (inputsAreIncomplete(params)) {
+      resultEl.textContent = 'Sila lengkapkan Maklumat Hasil (Langkah 1) dan Kos (Langkah 2) dahulu untuk anggaran yang lebih tepat.';
+      return;
+    }
+
+    const scenarioParams = buildScenarioParamsFromParams(params);
+    const sc = computeScenario(scenarioParams);
+    const coloniesForCalc = params.colonies > 0 ? params.colonies : 1;
+    const untungSetahunPerKoloni = numOrZero(sc.cashflows[1]) / coloniesForCalc;
+    if (untungSetahunPerKoloni <= 0) {
+      resultEl.textContent = 'Berdasarkan input semasa, projek tidak menunjukkan untung per koloni. Sila semak harga madu, hasil, atau kos.';
+      return;
+    }
+    const targetSetahun = targetMonthly * 12;
+    const coloniesNeeded = Math.ceil(targetSetahun / untungSetahunPerKoloni);
+    resultEl.innerHTML = `Anggaran bilangan koloni diperlukan: <span class="hl-val">${fmtNumber(coloniesNeeded, 0)}</span> koloni.`;
   }
 
   function downloadPDF() {
@@ -1825,7 +1967,7 @@
         pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
         heightLeft -= pdfHeight;
       }
-      pdf.save('Laporan_Projek_Madu_Kelulut_screenshot.pdf');
+      pdf.save('Laporan_Projek_Madu_Kelulut_imej_skrin.pdf');
     });
   }
 
@@ -1881,8 +2023,8 @@
     const boxWidth = (pageWidth - margin * 2 - 6) / 3;
     const boxY = 62;
     drawSummaryBox(margin, boxY, boxWidth, 22, "Untung Bersih Tahun 1 (RM)", `RM ${fmtRM(sc.cashflows[1] || 0)}`);
-    drawSummaryBox(margin + boxWidth + 3, boxY, boxWidth, 22, "Tahun Patah Balik Modal", sc.paybackYear ? `Tahun ${sc.paybackYear}` : "Belum");
-    drawSummaryBox(margin + (boxWidth + 3) * 2, boxY, boxWidth, 22, "Harga Madu Minimum (RM/kg)", `RM ${fmtRM(breakEvenPrice || 0)}`);
+    drawSummaryBox(margin + boxWidth + 3, boxY, boxWidth, 22, "Tahun pulang modal", sc.paybackYear ? `Tahun ${sc.paybackYear}` : "Belum");
+    drawSummaryBox(margin + (boxWidth + 3) * 2, boxY, boxWidth, 22, "Harga madu minimum tak rugi (RM/kg)", `RM ${fmtRM(breakEvenPrice || 0)}`);
 
     let y = 92;
     pdf.setFontSize(12);
@@ -1998,7 +2140,7 @@
       pdf.addImage(npvImg, 'PNG', margin, y, chartWidth, npvHeight);
       y += npvHeight + 6;
       pdf.setFontSize(10);
-      pdf.text("Graf sensitiviti NPV vs harga madu menunjukkan bagaimana keuntungan berubah bila harga naik atau turun. Bar di bawah sifar bermakna NPV negatif. Semakin tinggi bar, semakin selamat projek.", margin, y);
+      pdf.text("Graf sensitiviti NPV berbanding harga madu menunjukkan bagaimana keuntungan berubah bila harga naik atau turun. Bar di bawah sifar bermakna NPV negatif. Semakin tinggi bar, semakin selamat projek.", margin, y);
     }
 
     const pageCount = pdf.getNumberOfPages();
@@ -2133,7 +2275,7 @@
     addSectionTitle("Ringkasan Projek (Tahun 1 & Pulang Modal)");
     addParagraph(`Untung bersih Tahun 1 ialah RM ${fmtRM(sc.cashflows[1] || 0)}. Ini bermaksud lebihan tunai selepas semua kos operasi dan kontinjensi pada tahun pertama.`);
     addParagraph(`Tahun pulang modal: ${paybackText}. Ini menunjukkan tahun bila aliran tunai terkumpul mula positif dan modal awal dianggap kembali.`);
-    addParagraph(`Harga madu minimum tak rugi (break-even) dianggarkan RM ${fmtRM(breakEvenPrice || 0)} / kg. Jika harga pasaran lebih tinggi daripada nilai ini, projek cenderung lebih selamat.`);
+    addParagraph(`Harga madu minimum tak rugi dianggarkan RM ${fmtRM(breakEvenPrice || 0)} / kg. Jika harga pasaran lebih tinggi daripada nilai ini, projek cenderung lebih selamat.`);
 
     pdf.addPage();
     y = 16;
@@ -2145,8 +2287,8 @@
       "IRR (Kadar Pulangan Dalaman): Macam kadar untung dalaman projek. Cara baca: jika IRR > kadar diskaun/alternatif simpanan, projek lebih menarik. Contoh: IRR 18% lebih tinggi daripada diskaun 3%.",
       "BCR (Nisbah Faedah-Kos): Setiap RM1 kos beri berapa RM manfaat. Cara baca: BCR > 1 bermakna manfaat lebih tinggi daripada kos. Contoh: BCR 1.30 = RM1 kos -> RM1.30 manfaat.",
       "ROI (Pulangan atas kos): Peratus untung bersih berbanding jumlah kos sepanjang tempoh projek. Cara baca: lagi tinggi, lagi baik. Contoh: kos RM 10,000, untung RM 2,000 -> ROI ~20%.",
-      "Payback (Tempoh Pulang Modal): Tahun bila modal kembali apabila aliran tunai terkumpul mula positif. Cara baca: lagi awal, lagi cepat modal kembali. Contoh: Payback Tahun ke-4.",
-      "Break-even price (Harga minimum tak rugi): Harga madu minimum supaya projek tidak rugi (NPV ~ 0), selepas ambil kira hasil sampingan. Cara baca: harga pasaran lebih tinggi daripada ini lebih selamat. Contoh: break-even RM 120/kg, harga RM 150/kg biasanya ada lebihan."
+      "Tahun pulang modal: Tahun bila modal kembali apabila aliran tunai terkumpul mula positif. Cara baca: lagi awal, lagi cepat modal kembali. Contoh: Tahun pulang modal ke-4.",
+      "Harga madu minimum tak rugi: Harga madu minimum supaya projek tidak rugi (NPV ~ 0), selepas ambil kira hasil sampingan. Cara baca: harga pasaran lebih tinggi daripada ini lebih selamat. Contoh: harga minimum RM 120/kg, harga RM 150/kg biasanya ada lebihan."
     ]);
     addParagraph(`Nota andaian ringkas: Hasil madu per koloni ${fmtNumber(params.honeyYieldPerColony)} kg/tahun, harga madu RM ${fmtRM(params.honeyPrice)} /kg, tempoh analisis ${params.T} tahun, kadar diskaun ${fmtNumber(params.discountRate * 100,0)}%, kontinjensi ${fmtNumber(params.contingencyRate * 100,0)}%, eskalasi kos ${fmtNumber(params.costEscalation * 100,1)}%, eskalasi harga ${fmtNumber(params.priceEscalation * 100,1)}%, mortaliti ${fmtNumber(params.mortalityRate * 100,1)}%, kos pembungkusan ${params.enablePackaging ? 'aktif' : 'tidak aktif'}. Kos pembangunan lain-lain Tahun 0: RM ${fmtRM(params.devCostOther0)}. Bahan habis pakai lain-lain setahun: RM ${fmtRM(params.otherOpexAnnual)}.`);
 
@@ -2174,13 +2316,13 @@
     addTable(["Tahun","Hasil (RM)","Kos (RM)","Aliran Tunai Bersih (RM)","Aliran Tunai Terkumpul (RM)","Nilai Kini Aliran Tunai (RM)"], cfRows, [14, 28, 28, 40, 36, 30]);
 
     addChartPage(
-      "Graf Cashflow Tahunan",
+      "Graf Aliran Tunai Tahunan",
       "Graf ini memaparkan aliran tunai bersih setiap tahun. Nilai di atas sifar bermaksud lebihan tunai, manakala nilai negatif menandakan kos melebihi hasil. Lihat tahun-tahun awal untuk menilai beban modal dan kos operasi.",
       "cfChart"
     );
     addChartPage(
-      "Graf Cashflow Terkumpul",
-      "Graf cashflow terkumpul menunjukkan jumlah keseluruhan aliran tunai dari tahun ke tahun. Titik graf melintasi sifar ialah tanda projek pulang modal. Lebih cepat graf naik melebihi sifar, lebih cepat modal kembali.",
+      "Graf Aliran Tunai Terkumpul",
+      "Graf aliran tunai terkumpul menunjukkan jumlah keseluruhan aliran tunai dari tahun ke tahun. Titik graf melintasi sifar ialah tanda projek pulang modal. Lebih cepat graf naik melebihi sifar, lebih cepat modal kembali.",
       "cumCfChart"
     );
     addChartPage(
@@ -2189,8 +2331,8 @@
       "npvSensChart"
     );
     addChartPage(
-      "Graf Sensitiviti Pelbagai Faktor",
-      "Graf tornado membandingkan faktor-faktor utama yang memberi kesan besar kepada NPV. Semakin panjang bar, semakin sensitif projek kepada faktor tersebut. Ini membantu penternak fokus kepada faktor yang paling mempengaruhi keuntungan.",
+      "Graf Sensitiviti Pelbagai Faktor (Corong)",
+      "Graf corong membandingkan faktor-faktor utama yang memberi kesan besar kepada NPV. Semakin panjang bar, semakin sensitif projek kepada faktor tersebut. Ini membantu penternak fokus kepada faktor yang paling mempengaruhi keuntungan.",
       "tornadoChart"
     );
 
@@ -2211,9 +2353,9 @@
         payback
       ];
     });
-    addTable(["Faktor Harga","Harga (RM/kg)","NPV (RM)","IRR (%)","BCR","Payback"], sensRows, [24, 26, 26, 18, 14, 22]);
+    addTable(["Faktor Harga","Harga (RM/kg)","NPV (RM)","IRR (%)","BCR","Tahun pulang modal"], sensRows, [24, 26, 26, 18, 14, 22]);
     const lowScenario = computeScenario({ ...scenarioParams, priceFactor: 0.8 });
-    addParagraph(`Contoh bacaan: Jika harga turun 20%, NPV menjadi RM ${fmtRM(lowScenario.npv)} dan payback ${lowScenario.paybackYear ? 'Tahun ' + lowScenario.paybackYear : 'tiada dalam tempoh analisis'}. Ini menunjukkan tahap sensitiviti projek terhadap turun naik harga.`);
+    addParagraph(`Contoh bacaan: Jika harga turun 20%, NPV menjadi RM ${fmtRM(lowScenario.npv)} dan tahun pulang modal ${lowScenario.paybackYear ? 'Tahun ' + lowScenario.paybackYear : 'tiada dalam tempoh analisis'}. Ini menunjukkan tahap sensitiviti projek terhadap turun naik harga.`);
 
     pdf.addPage();
     y = 16;
@@ -2223,7 +2365,7 @@
     addBullets([
       "Kurangkan kos bahan habis pakai dan kos tenaga kerja melalui pembelian secara pukal atau kerjasama komuniti.",
       "Tingkatkan hasil per koloni melalui pengurusan koloni yang konsisten dan amalan penternakan baik.",
-      "Gunakan pendekatan konservatif: sediakan senario harga rendah dan hasil rendah sebelum melabur.",
+      "Gunakan pendekatan konservatif: sediakan tetapan harga rendah dan hasil rendah sebelum melabur.",
       "Semak semula harga jualan dan strategi pemasaran agar nilai jualan kekal stabil."
     ]);
 
@@ -2305,10 +2447,12 @@
 
   function setupListeners() {
     document.getElementById('btnRun').addEventListener('click', runAnalysis);
-    document.getElementById('btnReset').addEventListener('click', () => { applyDefaults(); clearResults(); saveState(); updateColonyEstimate(); setStatusMessage('Semua medan telah direset ke nilai asal.'); });
-    document.getElementById('btnDemo').addEventListener('click', () => { applyDemo(); setStatusMessage('Contoh demo dimasukkan.'); });
+    document.getElementById('btnReset').addEventListener('click', () => { applyDefaults(); clearResults(); saveState(); updateColonyEstimate(); setStatusMessage('Semua medan telah ditetapkan semula ke nilai asal.'); });
+    document.getElementById('btnDemo').addEventListener('click', () => { applyDemo(); setStatusMessage('Contoh dimasukkan.'); });
     document.getElementById('btnSave').addEventListener('click', () => { saveState(); setStatusMessage('Data berjaya disimpan di pelayar.'); });
     document.getElementById('btnClearSave').addEventListener('click', () => { localStorage.removeItem(storageKey); applyDefaults(); setStatusMessage('Simpanan dibersihkan.'); });
+    const targetBtn = document.getElementById('btnTargetMonthly');
+    if (targetBtn) targetBtn.addEventListener('click', estimateTargetMonthlyColonies);
 
     ['modeSimple','modeDetailed','areaAcre','density'].forEach(id => {
       const el = document.getElementById(id);
