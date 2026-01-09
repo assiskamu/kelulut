@@ -166,8 +166,8 @@
     .info-panel { background: #121212; border: 1px solid rgba(255, 213, 79, 0.2); }
     .info-panel > summary { color: #ffe082; background: rgba(255, 213, 79, 0.08); }
     .info-panel-body { padding: 10px 12px 12px; }
-    .hl-val { background: #ffe95c; color: #111; font-weight: 800; padding: 0 6px; border-radius: 6px; }
-    .hl-name { background: #7df2ff; color: #111; font-weight: 800; padding: 0 6px; border-radius: 6px; }
+    .hl-val { background: #ffe95c; color: #111; font-weight: 800; padding: 0 6px; border-radius: 6px; box-shadow: 0 0 0 1px rgba(255, 214, 0, 0.6), 0 0 12px rgba(255, 214, 0, 0.45); }
+    .hl-name { background: #7df2ff; color: #111; font-weight: 800; padding: 0 6px; border-radius: 6px; box-shadow: 0 0 0 1px rgba(77, 182, 255, 0.55), 0 0 12px rgba(77, 182, 255, 0.4); }
     .info-strong { color: #ffe95c; font-weight: 800; }
     .step-badge, .section-badge {
       display: inline-flex;
@@ -740,6 +740,25 @@
     if (x === null || x === undefined || isNaN(x)) return "-";
     const formatter = new Intl.NumberFormat('ms-MY', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
     return formatter.format(Number(x));
+  }
+  function escapeHtml(str) {
+    return String(str ?? '').replace(/[&<>"']/g, (char) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    }[char]));
+  }
+  function hlName(str) {
+    return `<span class="hl-name">${escapeHtml(str)}</span>`;
+  }
+  function hlVal(str) {
+    return `<span class="hl-val">${escapeHtml(str)}</span>`;
+  }
+  function highlightRMText(text) {
+    const safeText = escapeHtml(text || '');
+    return safeText.replace(/RM\s?\d[\d,]*(?:\.\d+)?/g, (match) => `<span class="hl-val">${match}</span>`);
   }
   function numOrZero(x) {
     const num = Number(x);
@@ -1692,7 +1711,7 @@
     const roiYear1 = baseScenario.totalCosts[1] > 0 ? (baseScenario.cashflows[1] / baseScenario.totalCosts[1]) * 100 : null;
 
     const paybackText = baseScenario.paybackYear ? "Tahun ke-" + baseScenario.paybackYear : "Tidak pulang modal dalam tempoh analisis";
-    const otherName = params.otherProductName ? ` (${params.otherProductName})` : '';
+    const otherName = params.otherProductName ? ` (${escapeHtml(params.otherProductName)})` : '';
     const year1Optional = computeYear1OptionalCosts(params);
     const honeyRevenueAnnual = year1Optional.honeyKg * honeyPrice;
     const propRevenueAnnual = colonies * propIncomePerCol;
@@ -1836,22 +1855,42 @@
     }
     suggestionHtml += "</ul>";
 
+    const farmerSummary = hlName(farmerName || '-');
+    const villageSummary = hlName(villageName || '-');
+    const phoneSummary = hlName(phoneNumber || '-');
+    const modeSummary = hlVal(params.mode === 'simple' ? 'Ringkas (Kampung)' : 'Terperinci (Profesional)');
+    const coloniesSummary = hlVal(fmtNumber(colonies, 0));
+    const honeyKgSummary = hlVal(`${fmtNumber(year1Optional.honeyKg)} kg`);
+    const honeyRevenueSummary = hlVal(`RM ${fmtNumber(honeyRevenueAnnual)}`);
+    const propRevenueSummary = hlVal(`RM ${fmtNumber(propRevenueAnnual)}`);
+    const soapRevenueSummary = hlVal(`RM ${fmtNumber(soapRevenueAnnual)}`);
+    const otherRevenueSummary = hlVal(`RM ${fmtNumber(otherRevenueAnnual)}`);
+    const totalAnnualRevenueSummary = hlVal(`RM ${fmtNumber(totalAnnualRevenue)}`);
+    const devCost0Summary = hlVal(`RM ${fmtNumber(devCost0)}`);
+    const devCostOther0Summary = hlVal(`RM ${fmtNumber(devCostOther0)}`);
+    const baseInputSummary = hlVal(`RM ${fmtNumber(baseInputAnnual)} / tahun`);
+    const otherOpexSummary = hlVal(`RM ${fmtNumber(otherOpexAnnual)} / tahun`);
+    const baseLabourSummary = hlVal(`RM ${fmtNumber(baseLabourAnnual)} / tahun`);
+    const baseMiscSummary = hlVal(`RM ${fmtNumber(baseMiscAnnual)} / tahun`);
+    const year1TotalSummary = hlVal(`RM ${fmtNumber(year1Optional.total)}`);
+    const year1DetailsSummary = year1Optional.details ? ` (${highlightRMText(year1Optional.details)})` : '';
+
     const resultsDiv = document.getElementById('results');
     resultsDiv.innerHTML = `
       <div class="result-box">
-        <p><strong>Nama penternak:</strong> ${farmerName || '-'} | <strong>Kampung / lokasi:</strong> ${villageName || '-'} | <strong>No. telefon:</strong> ${phoneNumber || '-'}</p>
-        <p><strong>Mod:</strong> ${params.mode === 'simple' ? 'Ringkas (Kampung)' : 'Terperinci (Profesional)'}</p>
-        <p><strong>Bilangan koloni digunakan dalam kiraan:</strong> ${fmtNumber(colonies,0)}</p>
-        <p><strong>Jumlah hasil madu tahun pertama:</strong> ${fmtNumber(year1Optional.honeyKg)} kg → anggaran nilai: RM ${fmtNumber(honeyRevenueAnnual)}</p>
-        <p><strong>Anggaran hasil propolis setahun:</strong> RM ${fmtNumber(propRevenueAnnual)} | <strong>Sabun:</strong> RM ${fmtNumber(soapRevenueAnnual)} | <strong>Lain-lain${otherName}:</strong> RM ${fmtNumber(otherRevenueAnnual)}</p>
-        <p><strong>Jumlah semua hasil setahun (Tahun 1):</strong> RM ${fmtNumber(totalAnnualRevenue)}</p>
-        <p><strong>Jumlah kos pembangunan (tahun 0):</strong> RM ${fmtNumber(devCost0)}</p>
-        <p><strong>Kos pembangunan lain-lain (Tahun 0):</strong> RM ${fmtNumber(devCostOther0)}</p>
-        <p><strong>Kos bahan input tahunan setara (asas):</strong> RM ${fmtNumber(baseInputAnnual)} / tahun</p>
-        <p><strong>Bahan habis pakai lain-lain (setahun):</strong> RM ${fmtNumber(otherOpexAnnual)} / tahun</p>
-        <p><strong>Kos tenaga kerja tahunan:</strong> RM ${fmtNumber(baseLabourAnnual)} / tahun | <strong>Kos pelbagai/utiliti:</strong> RM ${fmtNumber(baseMiscAnnual)} / tahun</p>
+        <p><strong>Nama penternak:</strong> ${farmerSummary} | <strong>Kampung / lokasi:</strong> ${villageSummary} | <strong>No. telefon:</strong> ${phoneSummary}</p>
+        <p><strong>Mod:</strong> ${modeSummary}</p>
+        <p><strong>Bilangan koloni digunakan dalam kiraan:</strong> ${coloniesSummary}</p>
+        <p><strong>Jumlah hasil madu tahun pertama:</strong> ${honeyKgSummary} → anggaran nilai: ${honeyRevenueSummary}</p>
+        <p><strong>Anggaran hasil propolis setahun:</strong> ${propRevenueSummary} | <strong>Sabun:</strong> ${soapRevenueSummary} | <strong>Lain-lain${otherName}:</strong> ${otherRevenueSummary}</p>
+        <p><strong>Jumlah semua hasil setahun (Tahun 1):</strong> ${totalAnnualRevenueSummary}</p>
+        <p><strong>Jumlah kos pembangunan (tahun 0):</strong> ${devCost0Summary}</p>
+        <p><strong>Kos pembangunan lain-lain (Tahun 0):</strong> ${devCostOther0Summary}</p>
+        <p><strong>Kos bahan input tahunan setara (asas):</strong> ${baseInputSummary}</p>
+        <p><strong>Bahan habis pakai lain-lain (setahun):</strong> ${otherOpexSummary}</p>
+        <p><strong>Kos tenaga kerja tahunan:</strong> ${baseLabourSummary} | <strong>Kos pelbagai/utiliti:</strong> ${baseMiscSummary}</p>
         <p><strong>Kos tahunan tambahan dipilih:</strong> ${summarizeOptionalCosts(params)}</p>
-        <p><strong>Anggaran kos tambahan Tahun 1:</strong> RM ${fmtNumber(year1Optional.total)}${year1Optional.details ? ' (' + year1Optional.details + ')' : ''}</p>
+        <p><strong>Anggaran kos tambahan Tahun 1:</strong> ${year1TotalSummary}${year1DetailsSummary}</p>
         ${keyCards}
         ${metricsTable}
       </div>
