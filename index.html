@@ -914,6 +914,8 @@
     targetMonthlyNet: 0
   };
 
+  window.__lastAnalysis = null;
+
   function npv(rate, cashflows) {
     return cashflows.reduce((acc, cf, t) => acc + cf / Math.pow(1 + rate, t), 0);
   }
@@ -1706,9 +1708,13 @@
   }
 
   function downloadCashflowCSV() {
-    const params = buildParams();
-    const scenarioParams = { ...params, baseHoneyPrice: params.honeyPrice, baseLabourAnnual: params.labourAnnual, priceFactor: 1 };
-    const sc = computeScenario(scenarioParams);
+    const bundle = getAnalysisBundle(false);
+    if (!bundle) {
+      setStatusMessage('Sila lengkapkan ruangan WAJIB dahulu sebelum muat turun.', 'warn');
+      focusFirstInvalidInput();
+      return;
+    }
+    const { params, sc } = bundle;
     const rows = [["Tahun","Koloni Efektif","Hasil (RM)","Kos (RM)","Aliran Tunai Bersih (RM)","Aliran Tunai Terkumpul (RM)","Nilai Kini Aliran Tunai (RM)"]];
     let cum = 0;
     sc.cashflows.forEach((cf, t) => {
@@ -1720,10 +1726,14 @@
   }
 
   function downloadSensitivityCSV() {
-    const params = buildParams();
-    const scenarioParams = { ...params, baseHoneyPrice: params.honeyPrice, baseLabourAnnual: params.labourAnnual, priceFactor: 1 };
-    const multiSens = buildMultiFactorSensitivity(params, scenarioParams);
-    const baseNPV = computeScenario(scenarioParams).npv;
+    const bundle = getAnalysisBundle(false);
+    if (!bundle) {
+      setStatusMessage('Sila lengkapkan ruangan WAJIB dahulu sebelum muat turun.', 'warn');
+      focusFirstInvalidInput();
+      return;
+    }
+    const { multiSens, sc } = bundle;
+    const baseNPV = sc.npv;
     const rows = [["Faktor","NPV Rendah","NPV Asas","NPV Tinggi","Julat NPV"]];
     multiSens.chartData.forEach(r => rows.push([r.label, fmtNumber(r.low), fmtNumber(baseNPV), fmtNumber(r.high), fmtNumber(r.range)]));
     downloadCSV("sensitiviti_kelulut.csv", rows);
@@ -1772,8 +1782,31 @@
     };
   }
 
-  function runAnalysis() {
+  function getAnalysisBundle(forceRecalc = false) {
     if (!validateInputs()) {
+      return null;
+    }
+    const params = buildParams();
+    const paramsHash = JSON.stringify(params);
+    if (!forceRecalc && window.__lastAnalysis && window.__lastAnalysis.paramsHash === paramsHash) {
+      return window.__lastAnalysis;
+    }
+    const scenarioParams = buildScenarioParamsFromParams(params);
+    if (!Number.isFinite(scenarioParams.priceFactor)) {
+      scenarioParams.priceFactor = 1;
+    }
+    const sc = computeScenario(scenarioParams);
+    const breakEvenPrice = computeBreakEvenHoneyPrice(scenarioParams);
+    const inputsIncomplete = inputsAreIncomplete(params);
+    const multiSens = buildMultiFactorSensitivity(params, scenarioParams);
+    const bundle = { params, scenarioParams, sc, breakEvenPrice, inputsIncomplete, multiSens, paramsHash };
+    window.__lastAnalysis = bundle;
+    return bundle;
+  }
+
+  function runAnalysis() {
+    const bundle = getAnalysisBundle(true);
+    if (!bundle) {
       setStatusMessage('Sila lengkapkan ruangan WAJIB dahulu sebelum kira.');
       focusFirstInvalidInput();
       return;
@@ -1782,18 +1815,12 @@
     const villageName = document.getElementById('villageName').value.trim();
     const phoneNumber = document.getElementById('phoneNumber').value.trim();
 
-    const params = buildParams();
+    const { params, scenarioParams, sc: baseScenario, breakEvenPrice, inputsIncomplete, multiSens } = bundle;
     const {
       colonies, honeyYieldPerColony, honeyPrice, propIncomePerCol, soapIncomePerCol, otherIncomePerCol,
       devCost0, devCostOther0, baseInputAnnual, otherOpexAnnual, baseLabourAnnual, baseMiscAnnual, T, discountRate,
       mortalityRate, replacementColonyCost, costEscalation, priceEscalation, contingencyRate
     } = params;
-
-    const scenarioParams = buildScenarioParamsFromParams(params);
-
-    const baseScenario = computeScenario(scenarioParams);
-    const inputsIncomplete = inputsAreIncomplete(params);
-    const breakEvenPrice = computeBreakEvenHoneyPrice(scenarioParams);
 
     const totalBenefits = baseScenario.benefits.reduce((a,b) => a + b, 0);
     const totalCosts = baseScenario.totalCosts.reduce((a,b) => a + b, 0);
@@ -2022,7 +2049,7 @@
     sensTable += "</table>";
     resultsDiv.innerHTML += sensTable;
 
-    const multiSensitivity = buildMultiFactorSensitivity(params, scenarioParams);
+    const multiSensitivity = multiSens;
     resultsDiv.innerHTML += multiSensitivity.tableHtml;
     resultsDiv.innerHTML += `<p class=\"note\">Nota: Kadar kontinjensi ditetapkan kepada ${fmtNumber(params.contingencyRate * 100,0)}% dan digunakan ke atas semua kos setiap tahun.</p>`;
 
@@ -2043,6 +2070,7 @@
     document.getElementById('reportMeta').textContent = `Versi kalkulator: v2.1 | Tarikh laporan dijana: ${dateStr} ${timeStr}`;
     saveState();
     setStatusMessage('Analisis berjaya dijana pada ' + dateStr + ' ' + timeStr + '.');
+    window.__lastAnalysis = bundle;
   }
 
   function estimateTargetMonthlyColonies() {
@@ -2100,11 +2128,13 @@
   }
 
   function downloadPdfRingkasClean() {
-    const params = buildParams();
-    const scenarioParams = { ...params, baseHoneyPrice: params.honeyPrice, baseLabourAnnual: params.labourAnnual, priceFactor: 1 };
-    const sc = computeScenario(scenarioParams);
-    const breakEvenPrice = computeBreakEvenHoneyPrice(scenarioParams);
-    const inputsIncomplete = inputsAreIncomplete(params);
+    const bundle = getAnalysisBundle(false);
+    if (!bundle) {
+      setStatusMessage('Sila lengkapkan ruangan WAJIB dahulu sebelum muat turun.', 'warn');
+      focusFirstInvalidInput();
+      return;
+    }
+    const { params, sc, breakEvenPrice, inputsIncomplete } = bundle;
 
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF('p', 'mm', 'a4');
@@ -2146,6 +2176,7 @@
     if (inputsIncomplete) {
       pdf.setFontSize(10);
       pdf.text("Nota: Ada input belum lengkap. Nilai 0.00 dipaparkan untuk medan yang belum diisi.", margin, 54);
+      pdf.text("Ada input yang belum lengkap; angka ini anggaran.", margin, 59);
     }
 
     const boxWidth = (pageWidth - margin * 2 - 6) / 3;
@@ -2282,9 +2313,13 @@
   }
 
   function downloadProfessionalPDF() {
-    const params = buildParams();
-    const scenarioParams = { ...params, baseHoneyPrice: params.honeyPrice, baseLabourAnnual: params.labourAnnual, priceFactor: 1 };
-    const sc = computeScenario(scenarioParams);
+    const bundle = getAnalysisBundle(false);
+    if (!bundle) {
+      setStatusMessage('Sila lengkapkan ruangan WAJIB dahulu sebelum muat turun.', 'warn');
+      focusFirstInvalidInput();
+      return;
+    }
+    const { params, scenarioParams, sc, breakEvenPrice, inputsIncomplete } = bundle;
     const baseNPV = sc.npv;
     const irrVal = sc.irr;
     const bcrVal = sc.bcr;
@@ -2293,7 +2328,6 @@
     const roi = totalCosts > 0 ? ((totalBenefits - totalCosts) / totalCosts) * 100 : null;
     const roiYear1 = sc.totalCosts[1] > 0 ? (sc.cashflows[1] / sc.totalCosts[1]) * 100 : null;
     const paybackText = sc.paybackYear ? `Tahun ke-${sc.paybackYear}` : "Tidak pulang modal dalam tempoh analisis";
-    const inputsIncomplete = inputsAreIncomplete(params);
 
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF('p', 'mm', 'a4');
@@ -2391,7 +2425,6 @@
     const farmerName = document.getElementById('farmerName').value.trim() || '-';
     const villageName = document.getElementById('villageName').value.trim() || '-';
     const generatedAt = `${now.toLocaleDateString('ms-MY')} ${now.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' })}`;
-    const breakEvenPrice = computeBreakEvenHoneyPrice(scenarioParams);
 
     addSectionTitle("Kalkulator Projek Madu Kelulut - Laporan Analisis Kewangan");
     addParagraph(`Nama Penternak: ${farmerName}`);
@@ -2399,6 +2432,9 @@
     addParagraph(`Tarikh/Masa dijana: ${generatedAt}`);
     addParagraph(`Versi kalkulator: ${calcVersion}`);
     addParagraph("Laporan ini menerangkan anggaran hasil, kos, dan pulangan projek madu kelulut berdasarkan data yang dimasukkan. Ia membantu penternak memahami sama ada projek berbaloi, bila modal kembali, serta bagaimana perubahan harga memberi kesan kepada untung rugi.");
+    if (inputsIncomplete) {
+      addParagraph("Ada input yang belum lengkap; angka ini anggaran.");
+    }
 
     addSectionTitle("Ringkasan Projek (Tahun 1 & Pulang Modal)");
     addParagraph(`Untung bersih Tahun 1 ialah RM ${fmtRM(sc.cashflows[1] || 0)}. Ini bermaksud lebihan tunai selepas semua kos operasi dan kontinjensi pada tahun pertama.`);
