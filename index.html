@@ -20,6 +20,7 @@
       font-family: Arial, sans-serif;
       margin: 0;
       padding: 16px;
+      padding-bottom: 120px;
       background: radial-gradient(circle at top left, #3d2b1f 0, #0b0b0b 45%, #000000 100%);
       color: var(--text);
     }
@@ -223,9 +224,70 @@
     .guide-card.step-three h4 { color: #c8e6c9; }
     .guide-tip { margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: rgba(255, 255, 255, 0.06); border: 1px dashed rgba(255, 255, 255, 0.2); font-size: 12px; color: #f0f0f0; }
     .guide-tip strong { color: #ffe082; }
+    .action-bar {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 999;
+      background: rgba(15, 15, 15, 0.96);
+      border-top: 1px solid rgba(255, 213, 79, 0.25);
+      padding: 10px 12px;
+      box-shadow: 0 -6px 16px rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(6px);
+    }
+    .action-bar.minimized {
+      padding-top: 6px;
+      padding-bottom: 6px;
+      opacity: 0.92;
+    }
+    .action-bar-inner {
+      max-width: 950px;
+      margin: 0 auto;
+    }
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: stretch;
+    }
+    .action-buttons .btn-inline {
+      margin: 0;
+      flex: 1;
+    }
+    .action-buttons #btnRun {
+      flex: 2;
+      min-width: 180px;
+    }
+    .action-bar button {
+      min-height: 44px;
+      font-size: 14px;
+      padding: 10px 12px;
+    }
+    .action-bar.compact {
+      padding: 6px 10px;
+    }
+    .action-bar.compact button {
+      min-height: 36px;
+      font-size: 12.5px;
+      padding: 8px 10px;
+    }
+    .action-bar.compact #btnRun {
+      min-height: 38px;
+    }
     @media (max-width: 780px) {
       .guide-cards { grid-template-columns: 1fr; }
       .guide-card:not(:last-child)::after { content: "↓"; right: 50%; top: auto; bottom: -18px; transform: translateX(50%); }
+    }
+    @media (max-width: 640px) {
+      .action-buttons {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
+      .action-buttons #btnRun {
+        grid-column: 1 / -1;
+        min-width: 0;
+      }
     }
     @media (max-width: 600px) { button { width: 100%; } .inline { flex-direction: column; align-items: flex-start; } }
   </style>
@@ -604,13 +666,16 @@
 
           <div id="errorSummary" class="error-summary">Sila betulkan medan yang merah.</div>
 
-          <div class="inline" style="margin-top:8px; gap:8px; flex-wrap: wrap;">
+          <div class="action-buttons" id="actionButtons">
             <button class="btn-primary btn-inline" id="btnRun">Kira Analisis</button>
-            <button class="btn-secondary btn-inline" id="btnReset">Tetapkan Semula / Kosongkan</button>
-            <button class="btn-ghost btn-inline" id="btnDemo">Isi Contoh</button>
-            <button class="btn-ghost btn-inline" id="btnSave">Simpan</button>
+            <button class="btn-secondary btn-inline" id="btnReset">Kosongkan</button>
+            <button class="btn-ghost btn-inline" id="btnDemo">Contoh Isian</button>
+            <button class="btn-ghost btn-inline" id="btnSave">Simpan Isian</button>
+          </div>
+          <div class="inline" style="margin-top:8px;">
             <button class="btn-secondary btn-inline" id="btnClearSave">Padam Simpanan</button>
           </div>
+          <div class="note small" id="actionBarHint">Butang tindakan ada di bahagian bawah skrin.</div>
           <div class="note" id="statusMessage"></div>
           <p class="note">Auto-simpan akan berlaku secara tertunda (beberapa saat) setiap kali anda ubah nilai. Simpanan disimpan di pelayar (localStorage).</p>
         </div>
@@ -1164,6 +1229,20 @@
     return valid;
   }
 
+  function focusFirstInvalidInput() {
+    const invalidEl = document.querySelector('.invalid');
+    if (!invalidEl) return false;
+    const step = invalidEl.closest('.step');
+    if (step) step.open = true;
+    const section = invalidEl.closest('details.section');
+    if (section) section.open = true;
+    invalidEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (typeof invalidEl.focus === 'function') {
+      invalidEl.focus({ preventScroll: true });
+    }
+    return true;
+  }
+
   function buildParams() {
     const mode = document.querySelector('input[name="mode"]:checked').value;
     const areaAcre = parseFloat(document.getElementById('areaAcre').value) || 0;
@@ -1687,7 +1766,11 @@
   }
 
   function runAnalysis() {
-    if (!validateInputs()) return;
+    if (!validateInputs()) {
+      setStatusMessage('Sila isi ruangan WAJIB dahulu.');
+      focusFirstInvalidInput();
+      return;
+    }
     const farmerName = document.getElementById('farmerName').value.trim();
     const villageName = document.getElementById('villageName').value.trim();
     const phoneNumber = document.getElementById('phoneNumber').value.trim();
@@ -2484,6 +2567,70 @@
     setGuideVisibility(!isHidden);
   }
 
+  function setupActionBar() {
+    const actionBar = document.getElementById('actionBar');
+    const actionInner = document.querySelector('#actionBar .action-bar-inner');
+    const actionButtons = document.getElementById('actionButtons');
+    if (!actionBar || !actionInner || !actionButtons) return;
+
+    actionInner.appendChild(actionButtons);
+
+    const updatePadding = () => {
+      const height = actionBar.offsetHeight || 0;
+      document.body.style.paddingBottom = `${height + 16}px`;
+    };
+
+    const applyPaddingSoon = () => requestAnimationFrame(updatePadding);
+
+    let blurTimeout;
+    document.addEventListener('focusin', (event) => {
+      if (event.target && event.target.matches('input, select, textarea')) {
+        actionBar.classList.add('compact');
+        actionBar.classList.remove('minimized');
+        applyPaddingSoon();
+      }
+    });
+
+    document.addEventListener('focusout', (event) => {
+      if (event.target && event.target.matches('input, select, textarea')) {
+        clearTimeout(blurTimeout);
+        blurTimeout = setTimeout(() => {
+          const active = document.activeElement;
+          if (!active || !active.matches('input, select, textarea')) {
+            actionBar.classList.remove('compact');
+            applyPaddingSoon();
+          }
+        }, 250);
+      }
+    });
+
+    let lastScrollY = window.scrollY;
+    let scrollTimeout;
+    window.addEventListener('scroll', () => {
+      const active = document.activeElement;
+      if (active && active.matches('input, select, textarea')) return;
+      const currentY = window.scrollY;
+      const delta = currentY - lastScrollY;
+      if (Math.abs(delta) > 25) {
+        if (delta > 0) {
+          actionBar.classList.add('minimized');
+        } else {
+          actionBar.classList.remove('minimized');
+        }
+        applyPaddingSoon();
+        lastScrollY = currentY;
+      }
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        actionBar.classList.remove('minimized');
+        applyPaddingSoon();
+      }, 600);
+    }, { passive: true });
+
+    window.addEventListener('resize', applyPaddingSoon);
+    applyPaddingSoon();
+  }
+
   function setupListeners() {
     document.getElementById('btnRun').addEventListener('click', runAnalysis);
     document.getElementById('btnReset').addEventListener('click', () => { applyDefaults(); clearResults(); saveState(); updateColonyEstimate(); setStatusMessage('Semua medan telah ditetapkan semula ke nilai asal.'); });
@@ -2524,8 +2671,12 @@
     setupListeners();
     setupAccordion();
     setupGuideToggle();
+    setupActionBar();
     updateQuickPreview();
   };
 </script>
+  <div id="actionBar" class="action-bar">
+    <div class="action-bar-inner"></div>
+  </div>
 </body>
 </html>
